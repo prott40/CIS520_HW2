@@ -40,5 +40,8 @@ int main(int argc, char **argv)
 {
 	// ::testing::InitGoogleTest(&argc, argv);
 	// ::testing::AddGlobalTestEnvironment(new GradeEnvironment);
+	//for testing if file can make
+	(void)argc;
+    (void)argv;
 	return RUN_ALL_TESTS();
 }
