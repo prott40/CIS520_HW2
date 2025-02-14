@@ -48,166 +48,291 @@ bool dyn_shift_remove(dyn_array_t *const dyn_array, const size_t position, const
 
 dyn_array_t *dyn_array_create(const size_t capacity, const size_t data_type_size, void (*destruct_func)(void *)) 
 {
-	if (data_type_size && capacity <= DYN_MAX_CAPACITY) 
-	{
-		dyn_array_t *dyn_array = (dyn_array_t *) malloc(sizeof(dyn_array_t));
-		if (dyn_array) 
-		{
-			// would have inf loop if requested size was between DYN_MAX_CAPACITY
-			// and SIZE_MAX
-			size_t actual_capacity = 16;
-			while (capacity > actual_capacity) 
-			{
-				actual_capacity <<= 1;
-			}
+    // Validate inputs
+    if (data_type_size == 0 || capacity > DYN_MAX_CAPACITY) 
+    {
+        return NULL;
+    }
 
-			// dyn_array->capacity = actual_capacity;
-			// dyn_array->size = 0;
-			// dyn_array->data_size = data_type_size;
-			// dyn_array->destructor = destruct_func;
+    // Allocate memory for the dynamic array structure
+    dyn_array_t *dyn_array = (dyn_array_t *)malloc(sizeof(dyn_array_t));
+    if (!dyn_array) 
+    {
+        return NULL;
+    }
 
-			// dyn_array->array = malloc(data_type_size * actual_capacity);
+    // Determine the actual capacity (rounding up to the nearest power of 2)
+    size_t actual_capacity = 16;
+    while (actual_capacity < capacity) 
+    {
+        if (actual_capacity > SIZE_MAX / 2) // Prevent overflow
+        {
+            free(dyn_array);
+            return NULL;
+        }
+        actual_capacity <<= 1;
+    }
 
-			// I had an idea... and it compiles
-			// const members of a malloc'd struct are so annoying
-			memcpy(dyn_array, &((dyn_array_t){actual_capacity, 0, data_type_size,
-											  malloc(data_type_size * actual_capacity), destruct_func}),
-				   sizeof(dyn_array_t));
+    // Allocate memory for the array
+    void *array = malloc(data_type_size * actual_capacity);
+    if (!array) 
+    {
+        free(dyn_array);
+        return NULL;
+    }
 
-			if (dyn_array->array) 
-			{
-				// other malloc worked, yay!
-				// we're done?
-				return dyn_array;
-			}
-			free(dyn_array);
-		}
-	}
-	return NULL;
+    // Initialize the structure
+    dyn_array->capacity = actual_capacity;
+    dyn_array->size = 0;
+    dyn_array->data_size = data_type_size;
+    dyn_array->array = array;
+    dyn_array->destructor = destruct_func;
+
+    return dyn_array;
 }
 
-// Creates a dynamic array from a standard array
-dyn_array_t *dyn_array_import(const void *const data, const size_t count, const size_t data_type_size,
-							  void (*destruct_func)(void *)) 
+
+dyn_array_t *dyn_array_import(const void *const data, const size_t count, const size_t data_type_size, void (*destruct_func)(void *)) 
 {
-	// literally could not give us an overlapping pointer unless they guessed it
-	// I'd just do a memcpy here instead of dyn_shift, but the dyn_shift branch for this is
-	// short. DYN_SHIFT CANNOT fail if create worked properly, but we'll cleanup if it did anyway
-	if (data && count) 
+	// Validate inputs
+	if (!data || count == 0) 
 	{
-		dyn_array_t *dyn_array = dyn_array_create(count, data_type_size, destruct_func);
-		if (dyn_array) 
-		{
-			if (dyn_shift_insert(dyn_array, 0, count, MODE_INSERT, data)) 
-			{
-				return dyn_array;
-			}
-			dyn_array_destroy(dyn_array);
-		}
+		return NULL;
 	}
+
+	// Create a new dynamic array
+	dyn_array_t *dyn_array = dyn_array_create(count, data_type_size, destruct_func);
+	if (!dyn_array) 
+	{
+		return NULL;
+	}
+
+	// Copy data into the dynamic array
+	if (dyn_shift_insert(dyn_array, 0, count, MODE_INSERT, data)) 
+	{
+		return dyn_array; // Success
+	}
+
+	// Cleanup in case of failure
+	dyn_array_destroy(dyn_array);
 	return NULL;
 }
 
-// TODO: Change this?
-// Maybe do a copy of all the data to some given array?
-// exporting then changing isn't safe since it's all the same data
+
 const void *dyn_array_export(const dyn_array_t *const dyn_array) 
 {
-	return dyn_array_front(dyn_array);
+    // Check for a valid input
+    if (!dyn_array || !dyn_array->array || dyn_array->size == 0) 
+    {
+        return NULL;
+    }
+
+    // Allocate memory for a copy of the data
+    void *export_data = malloc(dyn_array->size * dyn_array->data_size);
+    if (!export_data) 
+    {
+        return NULL; // Memory allocation failed
+    }
+
+    // Copy the contents of the dynamic array into the newly allocated memory
+    memcpy(export_data, dyn_array->array, dyn_array->size * dyn_array->data_size);
+
+    // Return the pointer to the copied data
+    return export_data;
 }
+
 
 void dyn_array_destroy(dyn_array_t *dyn_array) 
 {
-	if (dyn_array) {
-		dyn_array_clear(dyn_array);
-		free(dyn_array->array);
-		free(dyn_array);
-	}
+    if (!dyn_array) {
+        return; // Nothing to do if the dynamic array is NULL
+    }
+
+    // Clear all elements in the dynamic array, applying the destructor if provided
+    dyn_array_clear(dyn_array);
+
+    // Free the internal array if it exists
+    if (dyn_array->array) {
+        free(dyn_array->array);
+        dyn_array->array = NULL; // Avoid dangling pointers
+    }
+
+    // Free the dynamic array structure itself
+    free(dyn_array);
+    dyn_array = NULL; // Avoid dangling pointers
 }
+
 
 
 
 
 void *dyn_array_front(const dyn_array_t *const dyn_array) 
 {
-	if (dyn_array && dyn_array->size) 
-	{
-		// If array is null, well, this is ok, because it's null
-		// but if array is broken, well, we can't help that
-		// nor can we detect that, so I guess it's not an error
-		return dyn_array->array;
-	}
-	return NULL;
+    // Check if the dynamic array is valid and non-empty
+    if (dyn_array && dyn_array->size) 
+    {
+        // Ensure the internal array pointer is valid
+        if (dyn_array->array) 
+        {
+            return (void *)dyn_array->array; // Return pointer to the first element
+        }
+    }
+
+    // Return NULL for invalid or empty dynamic arrays
+    return NULL;
 }
+
 
 bool dyn_array_push_front(dyn_array_t *const dyn_array, const void *const object) 
 {
-	return dyn_shift_insert(dyn_array, 0, 1, MODE_INSERT, object);
+    // Validate inputs
+    if (!dyn_array || !object) 
+    {
+        return false; // Invalid input
+    }
+
+    // Attempt to insert the object at the front of the array
+    return dyn_shift_insert(dyn_array, 0, 1, MODE_INSERT, object);
 }
+
 
 bool dyn_array_pop_front(dyn_array_t *const dyn_array) 
 {
-	return dyn_shift_remove(dyn_array, 0, 1, MODE_ERASE, NULL);
+    // Validate input
+    if (!dyn_array) 
+    {
+        return false; // Invalid input
+    }
+
+    // Check if the array is empty
+    if (dyn_array->size == 0) 
+    {
+        return false; // Nothing to pop
+    }
+
+    // Remove the object at the front of the array
+    return dyn_shift_remove(dyn_array, 0, 1, MODE_ERASE, NULL);
 }
+
 
 bool dyn_array_extract_front(dyn_array_t *const dyn_array, void *const object) 
 {
-	return dyn_shift_remove(dyn_array, 0, 1, MODE_EXTRACT, object);
+    // Validate inputs
+    if (!dyn_array || !object) 
+    {
+        return false; // Invalid input
+    }
+
+    // Check if the array is empty
+    if (dyn_array->size == 0) 
+    {
+        return false; // Nothing to extract
+    }
+
+    // Extract the object at the front of the array
+    return dyn_shift_remove(dyn_array, 0, 1, MODE_EXTRACT, object);
 }
+
 
 
 
 
 void *dyn_array_back(const dyn_array_t *const dyn_array) 
 {
-	if (dyn_array && dyn_array->size) 
-	{
-		return DYN_ARRAY_POSITION(dyn_array, dyn_array->size - 1);
-	}
-	return NULL;
+    // Validate input
+    if (!dyn_array || dyn_array->size == 0) 
+    {
+        return NULL; // Invalid array or empty
+    }
+
+    // Return the pointer to the last element
+    return DYN_ARRAY_POSITION(dyn_array, dyn_array->size - 1);
 }
 
 bool dyn_array_push_back(dyn_array_t *const dyn_array, const void *const object) 
 {
-	return dyn_array && dyn_shift_insert(dyn_array, dyn_array->size, 1, MODE_INSERT, (void *const) object);
+    // Validate input
+    if (!dyn_array || !object) 
+    {
+        return false; // Invalid parameters
+    }
+
+    // Insert the object at the back of the array
+    return dyn_shift_insert(dyn_array, dyn_array->size, 1, MODE_INSERT, object);
 }
 
 bool dyn_array_pop_back(dyn_array_t *const dyn_array) 
 {
-	// Assert size because rollunder is scary, (though it should be handled correctly)
-	return dyn_array && dyn_array->size && dyn_shift_remove(dyn_array, dyn_array->size - 1, 1, MODE_ERASE, NULL);
+    // Validate input
+    if (!dyn_array || dyn_array->size == 0) 
+    {
+        return false; // Invalid input or empty array
+    }
+
+    // Remove the last element
+    return dyn_shift_remove(dyn_array, dyn_array->size - 1, 1, MODE_ERASE, NULL);
 }
+
 
 bool dyn_array_extract_back(dyn_array_t *const dyn_array, void *const object) 
 {
-	// Assert size because rollunder is scary, (though it should be handled correctly)
-	return dyn_array && dyn_array->size && dyn_shift_remove(dyn_array, dyn_array->size - 1, 1, MODE_EXTRACT, object);
+    // Validate input
+    if (!dyn_array || dyn_array->size == 0 || !object) 
+    {
+        return false; // Invalid input or empty array
+    }
+
+    // Extract the last element
+    return dyn_shift_remove(dyn_array, dyn_array->size - 1, 1, MODE_EXTRACT, object);
 }
+
 
 
 void *dyn_array_at(const dyn_array_t *const dyn_array, const size_t index) 
 {
-	if (dyn_array && index < dyn_array->size) 
-	{
-		return DYN_ARRAY_POSITION(dyn_array, index);
-	}
-	return NULL;
+    // Validate inputs
+    if (!dyn_array) 
+    {
+        return NULL; // Null array pointer
+    }
+
+    if (index >= dyn_array->size) 
+    {
+        return NULL; // Out-of-bounds index
+    }
+
+    // Return a pointer to the element at the given index
+    return DYN_ARRAY_POSITION(dyn_array, index);
 }
+
 
 bool dyn_array_insert(dyn_array_t *const dyn_array, const size_t index, const void *const object) 
 {
-	// putting object at INDEX
-	// so we shift a gap at INDEX
-	return object && dyn_shift_insert(dyn_array, index, 1, MODE_INSERT, object);
+    // putting object at INDEX
+    // so we shift a gap at INDEX
+    return object && dyn_shift_insert(dyn_array, index, 1, MODE_INSERT, object);
 }
+
 
 bool dyn_array_erase(dyn_array_t *const dyn_array, const size_t index) 
 {
-	return dyn_shift_remove(dyn_array, index, 1, MODE_ERASE, NULL);
+    // Validate inputs
+    if (!dyn_array || index >= dyn_array->size) 
+    {
+        return false;
+    }
+
+    // Delegate removal logic to dyn_shift_remove
+    return dyn_shift_remove(dyn_array, index, 1, MODE_ERASE, NULL);
 }
 
 bool dyn_array_extract(dyn_array_t *const dyn_array, const size_t index, void *const object) 
 {
+	 // Validate parameters
+    if (!dyn_array || !object || index >= dyn_array->size) 
+    {
+        return false;
+    }
 	return dyn_array && object && dyn_array->size > index
 		   && dyn_shift_remove(dyn_array, index, 1, MODE_EXTRACT, object);
 }
@@ -215,6 +340,7 @@ bool dyn_array_extract(dyn_array_t *const dyn_array, const size_t index, void *c
 
 void dyn_array_clear(dyn_array_t *const dyn_array) 
 {
+	
 	if (dyn_array && dyn_array->size) 
 	{
 		dyn_shift_remove(dyn_array, 0, dyn_array->size, MODE_ERASE, NULL);
@@ -268,8 +394,7 @@ bool dyn_array_sort(dyn_array_t *const dyn_array, int (*const compare)(const voi
 }
 
 
-bool dyn_array_insert_sorted(dyn_array_t *const dyn_array, const void *const object,
-							 int (*const compare)(const void *, const void *)) 
+bool dyn_array_insert_sorted(dyn_array_t *const dyn_array, const void *const object, int (*const compare)(const void *, const void *)) 
 {
 	if (dyn_array && compare && object) 
 	{
