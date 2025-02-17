@@ -91,7 +91,7 @@ dyn_array_t *load_process_control_blocks(const char *input_file)
         fclose(ptr); // Close the file before returning
         return NULL;
     }
-
+	int ar = 0
     // Loop over allocated memory and read the values into the struct fields
     for (uint32_t i = 0; i < pcb_count; ++i) {
 		// iterate over memory and save the remainng burst time for each loaction
@@ -104,8 +104,9 @@ dyn_array_t *load_process_control_blocks(const char *input_file)
 
         // Initialize other fields with default values
         pc[i].priority = 0;
-        pc[i].arrival = 0;
+        pc[i].arrival = ar;
         pc[i].started = false;
+		ar += 1;
     }
 
     // Close the file after reading all data
