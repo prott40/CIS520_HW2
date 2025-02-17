@@ -21,17 +21,52 @@ void virtual_cpu(ProcessControlBlock_t *process_control_block)
 // \param ready queue a dyn_array of type ProcessControlBlock_t that contain be up to N elements
 // \param result used for first come first served stat tracking \ref ScheduleResult_t
 // \return true if function ran successful else false for an error
-bool first_come_first_serve(dyn_array_t *ready_queue, ScheduleResult_t *result) 
+bool first_come_first_serve(dyn_array_t *ready_queue, ScheduleResult_t *result)
 {
-	if(ready_queue == NULL || result == NULL){
-		fprintf(stderr, "%s:%d invalid param\n", __FILE__,__LINE__);
-        return NULL;
-	}
+    // Validate inputs
+    if (!ready_queue || !result || dyn_array_size(ready_queue) == 0) {
+        return false;  // Return false for invalid input
+    }
 
-	UNUSED(ready_queue);
-	UNUSED(result);
-	return false;
+    // Initialize statistics
+    unsigned long total_run_time = 0;
+    float total_wait_time = 0;
+    float total_turnaround_time = 0;
+
+    // Iterate over all processes in the ready_queue
+    uint32_t current_time = 0;  // Keeps track of when the CPU is available for the next process
+
+    // Assuming each PCB is of type ProcessControlBlock_t
+    for (size_t i = 0; i < dyn_array_size(ready_queue); ++i) {
+        ProcessControlBlock_t *pcb = (ProcessControlBlock_t *)dyn_array_get(ready_queue, i);
+
+        if (!pcb) {
+            return false;  // If PCB is NULL, return false
+        }
+
+        // Calculate wait time: it's the difference between the current time and the arrival time
+        uint32_t wait_time = (current_time >= pcb->arrival) ? (current_time - pcb->arrival) : 0;
+
+        // Calculate turnaround time: it's the wait time + the burst time of the process
+        uint32_t turnaround_time = wait_time + pcb->remaining_burst_time;
+
+        // Update the statistics
+        total_wait_time += wait_time;
+        total_turnaround_time += turnaround_time;
+        total_run_time += pcb->remaining_burst_time;
+
+        // Update the current time: when this process finishes
+        current_time += pcb->remaining_burst_time;
+    }
+
+    // Calculate averages
+    result->average_waiting_time = total_wait_time / dyn_array_size(ready_queue);
+    result->average_turnaround_time = total_turnaround_time / dyn_array_size(ready_queue);
+    result->total_run_time = total_run_time;
+
+    return true;  // Success
 }
+
 
 bool shortest_job_first(dyn_array_t *ready_queue, ScheduleResult_t *result) 
 {
