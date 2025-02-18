@@ -17,7 +17,7 @@ add_library(dyn_array src/dyn_array.c)
 add_executable(analysis src/analysis.c)
 
 # Create library process scheduling executable
-add_library(process_scheduling src/process_scheduling.c)
+add_library(processing_scheduling src/processing_scheduling.c)
 
 # Link dyn_array library with the analysis executable
 target_link_libraries(analysis dyn_array)
