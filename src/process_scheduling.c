@@ -89,12 +89,7 @@ bool round_robin(dyn_array_t *ready_queue, ScheduleResult_t *result, size_t quan
 	UNUSED(quantum);
 	return false;
 }
-// Reads the PCB burst time values from the binary file into ProcessControlBlock_t remaining_burst_time field
-// for N number of PCB burst time stored in the file.
-// \param input_file the file containing the PCB burst times
-// \return a populated dyn_array of ProcessControlBlocks if function ran successful else NULL for an error
-dyn_array_t *load_process_control_blocks(const char *input_file) 
-{
+dyn_array_t *load_process_control_blocks(const char *input_file) {
     // Check parameters to ensure that it is valid
     if (input_file == NULL) {
         fprintf(stderr, "%s:%d invalid parameter\n", __FILE__, __LINE__);
@@ -103,7 +98,6 @@ dyn_array_t *load_process_control_blocks(const char *input_file)
 
     // Open the binary file for reading
     FILE *ptr = fopen(input_file, "rb");  // r for read, b for binary
-	// chekc if read has failed
     if (ptr == NULL) {
         fprintf(stderr, "%s:%d error opening file\n", __FILE__, __LINE__);
         return NULL;
@@ -111,25 +105,23 @@ dyn_array_t *load_process_control_blocks(const char *input_file)
 
     // Read the process control block count
     uint32_t pcb_count;
-	// read the  pcb count from the file 
     if (fread(&pcb_count, sizeof(uint32_t), 1, ptr) != 1) {
-        fprintf(stderr, "%s:%d error reading file\n", __FILE__, __LINE__);
-        fclose(ptr); // Close the file before returning
+        fprintf(stderr, "%s:%d error reading PCB count\n", __FILE__, __LINE__);
+        fclose(ptr);
         return NULL;
     }
 
-    // Create the process control block struct for the size of count
+    // Create the process control block array
     ProcessControlBlock_t *pc = malloc(sizeof(ProcessControlBlock_t) * pcb_count);
-	// if the allocation has failed
     if (!pc) {
         fprintf(stderr, "%s:%d error allocating memory\n", __FILE__, __LINE__);
-        fclose(ptr); // Close the file before returning
+        fclose(ptr);
         return NULL;
     }
-	int ar = 0
-    // Loop over allocated memory and read the values into the struct fields
+
+    // Loop over the PCB count and read all fields for each process
     for (uint32_t i = 0; i < pcb_count; ++i) {
-		// iterate over memory and save the remainng burst time for each loaction
+        // Read the remaining burst time
         if (fread(&pc[i].remaining_burst_time, sizeof(uint32_t), 1, ptr) != 1) {
             fprintf(stderr, "%s:%d error reading burst time for PCB %u\n", __FILE__, __LINE__, i);
             free(pc);
@@ -137,30 +129,28 @@ dyn_array_t *load_process_control_blocks(const char *input_file)
             return NULL;
         }
 
+        // Read the priority
+        if (fread(&pc[i].priority, sizeof(uint32_t), 1, ptr) != 1) {
+            fprintf(stderr, "%s:%d error reading priority for PCB %u\n", __FILE__, __LINE__, i);
+            free(pc);
+            fclose(ptr);
+            return NULL;
+        }
+
+        // Read the arrival time
+        if (fread(&pc[i].arrival, sizeof(uint32_t), 1, ptr) != 1) {
+            fprintf(stderr, "%s:%d error reading arrival time for PCB %u\n", __FILE__, __LINE__, i);
+            free(pc);
+            fclose(ptr);
+            return NULL;
+        }
+
         // Initialize other fields with default values
-        pc[i].priority = 0;
-        pc[i].arrival = ar;
-        pc[i].started = false;
-		ar += 1;
+        pc[i].started = false;  // Default value
     }
 
-    // Close the file after reading all data
-    fclose(ptr);
+   
 
-    // Create the dynamic array to return based on the data
-    dyn_array_t *dyn_array = dyn_array_import(pc, pcb_count, sizeof(ProcessControlBlock_t), free);
-	// if failed import
-    if (!dyn_array) {
-        fprintf(stderr, "%s:%d error creating dynamic array\n", __FILE__, __LINE__);
-        free(pc);  // Free the temporary memory before returning
-        return NULL;
-    }
-
-    // Free the temporary static array as its data has been imported
-    free(pc);
-
-    return dyn_array;
-}
 
 bool shortest_remaining_time_first(dyn_array_t *ready_queue, ScheduleResult_t *result) 
 {
