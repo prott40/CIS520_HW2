@@ -2,13 +2,12 @@
 #include <stdio.h>
 #include <pthread.h>
 #include "gtest/gtest.h"
-
+#include "processing_scheduling.h"
 
 // Using a C library requires extern "C" to prevent function mangling
 extern "C"
 {
 #include <dyn_array.h>
-#include <processing_scheduling.h>
 }
 
 #define NUM_PCB 30
@@ -70,18 +69,19 @@ TEST(LoadProcessControlBlocks, ValidFile) {
     ASSERT_NE(result, nullptr);
     ASSERT_EQ(dyn_array_size(result), pcb_count);
 
-    ProcessControlBlock_t pcb;
-    dyn_array_at(result, 0);
-    EXPECT_EQ((int)pcb.remaining_burst_time, (int)burst_time_1);
-    EXPECT_EQ((int)pcb.priority, (int)priority_1);
-    EXPECT_EQ((int)pcb.arrival, (int)arrival_1);
-    EXPECT_EQ(pcb.started, false);
+    ProcessControlBlock_t *pc = (ProcessControlBlock_t *)dyn_array_at(result, 0);
+    ASSERT_NE(pc, nullptr); // Ensure the pointer is valid
+    EXPECT_EQ((int)pc->remaining_burst_time, (int)burst_time_1);
+    EXPECT_EQ((int)pc->priority, (int)priority_1);
+    EXPECT_EQ((int)pc->arrival, (int)arrival_1);
+    EXPECT_EQ(pc->started, false);
 
-    dyn_array_at(result, 1);
-    EXPECT_EQ((int)pcb.remaining_burst_time, (int)burst_time_2);
-    EXPECT_EQ((int)pcb.priority, (int)priority_2);
-    EXPECT_EQ((int)pcb.arrival, (int)arrival_2);
-    EXPECT_EQ(pcb.started, false);
+    pc = (ProcessControlBlock_t *)dyn_array_at(result, 1);
+    ASSERT_NE(pc, nullptr);
+    EXPECT_EQ((int)pc->remaining_burst_time, (int)burst_time_2);
+    EXPECT_EQ((int)pc->priority, (int)priority_2);
+    EXPECT_EQ((int)pc->arrival, (int)arrival_2);
+    EXPECT_EQ(pc->started, false); 
 
     score += 20; // Award 20 points for this test case
 

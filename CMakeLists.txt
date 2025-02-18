@@ -25,5 +25,5 @@ target_link_libraries(analysis dyn_array)
 # Compile the tester executable
 add_executable(${PROJECT_NAME}_test test/tests.cpp)
 
-# Link ${PROJECT_NAME}_test with dyn_array, gtest, and pthread libraries
-target_link_libraries(${PROJECT_NAME}_test gtest pthread dyn_array)
+# Link ${PROJECT_NAME}_test with dyn_array, gtest, and pthread libraries process scheduling
+target_link_libraries(${PROJECT_NAME}_test gtest pthread dyn_array processing_scheduling)

@@ -25,7 +25,6 @@ bool first_come_first_serve(dyn_array_t *ready_queue, ScheduleResult_t *result)
 {
     // Validate inputs
     if (!ready_queue || !result || dyn_array_size(ready_queue) == 0) {
-        fprintf(stderr, "%s:%d invalid parameter\n", __FILE__, __LINE__);
         return false;  // Return false for invalid input
     }
 
@@ -39,26 +38,25 @@ bool first_come_first_serve(dyn_array_t *ready_queue, ScheduleResult_t *result)
 
     // Assuming each PCB is of type ProcessControlBlock_t
     for (size_t i = 0; i < dyn_array_size(ready_queue); ++i) {
-        ProcessControlBlock_t *pc = dyn_array_at(ready_queue, i);
+        ProcessControlBlock_t *pcb = (ProcessControlBlock_t *)dyn_array_get(ready_queue, i);
 
-        if (!pc) {
-            fprintf(stderr, "%s:%d process controll block is null\n", __FILE__, __LINE__);
+        if (!pcb) {
             return false;  // If PCB is NULL, return false
         }
 
         // Calculate wait time: it's the difference between the current time and the arrival time
-        uint32_t wait_time = (current_time >= pc->arrival) ? (current_time - pc->arrival) : 0;
+        uint32_t wait_time = (current_time >= pcb->arrival) ? (current_time - pcb->arrival) : 0;
 
         // Calculate turnaround time: it's the wait time + the burst time of the process
-        uint32_t turnaround_time = wait_time + pc->remaining_burst_time;
+        uint32_t turnaround_time = wait_time + pcb->remaining_burst_time;
 
         // Update the statistics
         total_wait_time += wait_time;
         total_turnaround_time += turnaround_time;
-        total_run_time += pc->remaining_burst_time;
+        total_run_time += pcb->remaining_burst_time;
 
         // Update the current time: when this process finishes
-        current_time += pc->remaining_burst_time;
+        current_time += pcb->remaining_burst_time;
     }
 
     // Calculate averages
@@ -91,10 +89,7 @@ bool round_robin(dyn_array_t *ready_queue, ScheduleResult_t *result, size_t quan
 	UNUSED(quantum);
 	return false;
 }
-
-
-dyn_array_t *load_process_control_blocks(const char *input_file) 
-{
+dyn_array_t *load_process_control_blocks(const char *input_file) {
     // Check parameters to ensure that it is valid
     if (input_file == NULL) {
         fprintf(stderr, "%s:%d invalid parameter\n", __FILE__, __LINE__);
@@ -154,20 +149,8 @@ dyn_array_t *load_process_control_blocks(const char *input_file)
         pc[i].started = false;  // Default value
     }
 
-    // Close the file after reading all data
-    fclose(ptr);
+   
 
-    // Create the dynamic array to return based on the data
-    dyn_array_t *dyn_array = dyn_array_import(pc, pcb_count, sizeof(ProcessControlBlock_t), free);
-    if (!dyn_array) {
-        fprintf(stderr, "%s:%d error creating dynamic array\n", __FILE__, __LINE__);
-        free(pc);  // Free only if dyn_array_import fails
-        return NULL;
-    }
-
-    // Do not free pc here as dyn_array_import now owns the data
-    return dyn_array;
-}
 
 bool shortest_remaining_time_first(dyn_array_t *ready_queue, ScheduleResult_t *result) 
 {

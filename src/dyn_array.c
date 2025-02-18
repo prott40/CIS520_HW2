@@ -92,32 +92,30 @@ dyn_array_t *dyn_array_create(const size_t capacity, const size_t data_type_size
 
 dyn_array_t *dyn_array_import(const void *const data, const size_t count, const size_t data_type_size, void (*destruct_func)(void *)) 
 {
-	// Validate inputs
-	if (!data || count == 0) 
-	{
-		fprintf(stderr, "%s:%d invalid input parameter\n", __FILE__, __LINE__);
-		return NULL;
-	}
+    // Validate inputs
+    if (!data || count == 0) {
+        fprintf(stderr, "%s:%d invalid input parameter\n", __FILE__, __LINE__);
+        return NULL;
+    }
 
-	// Create a new dynamic array
-	dyn_array_t *dyn_array = dyn_array_create(count, data_type_size, destruct_func);
-	if (!dyn_array) 
-	{
-		fprintf(stderr, "%s:%d dynamic arrray allocaiton failedr\n", __FILE__, __LINE__);
-		return NULL;
-	}
+    // Create a new dynamic array
+    dyn_array_t *dyn_array = dyn_array_create(count, data_type_size, destruct_func);
+    if (!dyn_array) {
+        fprintf(stderr, "%s:%d dynamic array allocation failed\n", __FILE__, __LINE__);
+        return NULL;
+    }
 
-	// Copy data into the dynamic array
-	if (dyn_shift_insert(dyn_array, 0, count, MODE_INSERT, data)) 
-	{
-		return dyn_array; // Success
-	}
+    // Copy data into the dynamic array
+    if (dyn_shift_insert(dyn_array, 0, count, MODE_INSERT, data)) {
+        return dyn_array; // Success
+    }
 
-	// Cleanup in case of failure
-	fprintf(stderr, "%s:%d array copy fialed\n", __FILE__, __LINE__);
-	dyn_array_destroy(dyn_array);
-	return NULL;
+    // Cleanup in case of failure
+    fprintf(stderr, "%s:%d array copy failed\n", __FILE__, __LINE__);
+    dyn_array_destroy(dyn_array);
+    return NULL;
 }
+
 
 
 const void *dyn_array_export(const dyn_array_t *const dyn_array) 
@@ -148,22 +146,21 @@ const void *dyn_array_export(const dyn_array_t *const dyn_array)
 void dyn_array_destroy(dyn_array_t *dyn_array) 
 {
     if (!dyn_array) {
-		fprintf(stderr, "%s:%d null parameter\n", __FILE__, __LINE__);
+        fprintf(stderr, "%s:%d null parameter\n", __FILE__, __LINE__);
         return; 
-	}
+    }
     // Clear all elements in the dynamic array, applying the destructor if provided
     dyn_array_clear(dyn_array);
 
     // Free the internal array if it exists
-    if (dyn_array->array) 
-	{
+    if (dyn_array->array) {
         free(dyn_array->array);
         dyn_array->array = NULL; // Avoid dangling pointers
     }
 
     // Free the dynamic array structure itself
     free(dyn_array);
-    dyn_array = NULL; // Avoid dangling pointers
+    // Don't reset dyn_array here, as the caller is responsible for this
 }
 
 ///
