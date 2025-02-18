@@ -1,0 +1,1 @@
+/opt/software/software/GCCcore/11.2.0/bin/c++ -std=c++11 -Wall -Wextra -Wshadow -Werror -rdynamic CMakeFiles/HW2_test.dir/test/tests.cpp.o -o HW2_test  -lgtest -lpthread libdyn_array.a 

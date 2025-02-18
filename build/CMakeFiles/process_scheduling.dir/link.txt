@@ -1,0 +1,2 @@
+/opt/software/software/binutils/2.37-GCCcore-11.2.0/bin/ar qc libprocess_scheduling.a CMakeFiles/process_scheduling.dir/src/process_scheduling.c.o
+/opt/software/software/binutils/2.37-GCCcore-11.2.0/bin/ranlib libprocess_scheduling.a
