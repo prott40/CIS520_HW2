@@ -309,11 +309,7 @@ dyn_array_t *load_process_control_blocks(const char *input_file)
     }
 
     ProcessControlBlock_t pcb;
-    if (!pc) {
-        fprintf(stderr, "%s:%d error allocating memory\n", __FILE__, __LINE__);
-        fclose(ptr);
-        return NULL;
-    }
+   
     while (fread(&pcb, sizeof(ProcessControlBlock_t), 1, file) == 1) // read in 1 pcb at a time
     {
         // Add the loaded ProcessControlBlock_t to the dynamic array
