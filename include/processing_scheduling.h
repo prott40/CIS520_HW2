@@ -27,6 +27,11 @@
 	} 
 	ScheduleResult_t;
 
+	// comaprison funcion to compare arrival times using the dynamic array sort funtion
+	// \param a is the first value
+	// \param b is the second value
+	// copied from https://www.gnu.org/software/libc/manual/html_node/Comparison-Functions.html
+	int arrival_time_compare(const void *a, const void *b);
 	// Reads the PCB burst time values from the binary file into ProcessControlBlock_t remaining_burst_time field
 	// for N number of PCB burst time stored in the file.
 	// \param input_file the file containing the PCB burst times

@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include "dyn_array.h"
 
 // Flag values
@@ -49,502 +48,267 @@ bool dyn_shift_remove(dyn_array_t *const dyn_array, const size_t position, const
 
 dyn_array_t *dyn_array_create(const size_t capacity, const size_t data_type_size, void (*destruct_func)(void *)) 
 {
-    // Validate inputs
-    if (data_type_size == 0 || capacity > DYN_MAX_CAPACITY) {
-		fprintf(stderr, "%s:%d invalid input parameter\n", __FILE__, __LINE__);
-        return NULL; // Invalid input
-    }
+	if (data_type_size && capacity <= DYN_MAX_CAPACITY) 
+	{
+		dyn_array_t *dyn_array = (dyn_array_t *) malloc(sizeof(dyn_array_t));
+		if (dyn_array) 
+		{
+			// would have inf loop if requested size was between DYN_MAX_CAPACITY
+			// and SIZE_MAX
+			size_t actual_capacity = 16;
+			while (capacity > actual_capacity) 
+			{
+				actual_capacity <<= 1;
+			}
 
-    // Determine the actual capacity (rounding up to the nearest power of 2)
-    size_t actual_capacity = 16;
-    while (actual_capacity < capacity) {
-        if (actual_capacity > SIZE_MAX / 2) { 
-			fprintf(stderr, "%s:%d overflow error\n", __FILE__, __LINE__);
-            return NULL;
-        }
-        actual_capacity <<= 1;
-    }
+			// dyn_array->capacity = actual_capacity;
+			// dyn_array->size = 0;
+			// dyn_array->data_size = data_type_size;
+			// dyn_array->destructor = destruct_func;
 
-    // Allocate memory for the dynamic array's data
-    void *array = malloc(data_type_size * actual_capacity);
-    if (!array) {
-		fprintf(stderr, "%s:%d allocation failure\n", __FILE__, __LINE__);
-        return NULL; 
-    }
+			// dyn_array->array = malloc(data_type_size * actual_capacity);
 
-    // Allocate memory for the dynamic array structure
-    dyn_array_t *dyn_array = malloc(sizeof(dyn_array_t));
-    if (!dyn_array) {
-		fprintf(stderr, "%s:%d dynamic allocaiton failurer\n", __FILE__, __LINE__);
-        free(array);
-        return NULL; 
-    }
+			// I had an idea... and it compiles
+			// const members of a malloc'd struct are so annoying
+			memcpy(dyn_array, &((dyn_array_t){actual_capacity, 0, data_type_size,
+											  malloc(data_type_size * actual_capacity), destruct_func}),
+				   sizeof(dyn_array_t));
 
-    // Initialize each field individually (required because of `const`)
-    dyn_array->capacity = actual_capacity;
-    dyn_array->size = 0;
-    *(size_t *)&dyn_array->data_size = data_type_size; // Use a cast to modify the `const` field safely
-    dyn_array->array = array;
-    dyn_array->destructor = destruct_func;
-
-    return dyn_array; // Successfully created
+			if (dyn_array->array) 
+			{
+				// other malloc worked, yay!
+				// we're done?
+				return dyn_array;
+			}
+			free(dyn_array);
+		}
+	}
+	return NULL;
 }
 
-dyn_array_t *dyn_array_import(const void *const data, const size_t count, const size_t data_type_size, void (*destruct_func)(void *)) 
+// Creates a dynamic array from a standard array
+dyn_array_t *dyn_array_import(const void *const data, const size_t count, const size_t data_type_size,
+							  void (*destruct_func)(void *)) 
 {
-    // Validate inputs
-    if (!data || count == 0) {
-        fprintf(stderr, "%s:%d invalid input parameter\n", __FILE__, __LINE__);
-        return NULL;
-    }
-
-    // Create a new dynamic array
-    dyn_array_t *dyn_array = dyn_array_create(count, data_type_size, destruct_func);
-    if (!dyn_array) {
-        fprintf(stderr, "%s:%d dynamic array allocation failed\n", __FILE__, __LINE__);
-        return NULL;
-    }
-
-    // Copy data into the dynamic array
-    if (dyn_shift_insert(dyn_array, 0, count, MODE_INSERT, data)) {
-        return dyn_array; // Success
-    }
-
-    // Cleanup in case of failure
-    fprintf(stderr, "%s:%d array copy failed\n", __FILE__, __LINE__);
-    dyn_array_destroy(dyn_array);
-    return NULL;
+	// literally could not give us an overlapping pointer unless they guessed it
+	// I'd just do a memcpy here instead of dyn_shift, but the dyn_shift branch for this is
+	// short. DYN_SHIFT CANNOT fail if create worked properly, but we'll cleanup if it did anyway
+	if (data && count) 
+	{
+		dyn_array_t *dyn_array = dyn_array_create(count, data_type_size, destruct_func);
+		if (dyn_array) 
+		{
+			if (dyn_shift_insert(dyn_array, 0, count, MODE_INSERT, data)) 
+			{
+				return dyn_array;
+			}
+			dyn_array_destroy(dyn_array);
+		}
+	}
+	return NULL;
 }
 
-
-
+// TODO: Change this?
+// Maybe do a copy of all the data to some given array?
+// exporting then changing isn't safe since it's all the same data
 const void *dyn_array_export(const dyn_array_t *const dyn_array) 
 {
-    // Check for a valid input
-    if (!dyn_array || !dyn_array->array || dyn_array->size == 0) 
-    {
-		fprintf(stderr, "%s:%d invalid input parameter\n", __FILE__, __LINE__);
-        return NULL;
-    }
-
-    // Allocate memory for a copy of the data
-    void *export_data = malloc(dyn_array->size * dyn_array->data_size);
-    if (!export_data) 
-    {
-		fprintf(stderr, "%s:%d Memory allocation failed \n", __FILE__, __LINE__);
-        return NULL; 
-    }
-
-    // Copy the contents of the dynamic array into the newly allocated memory
-    memcpy(export_data, dyn_array->array, dyn_array->size * dyn_array->data_size);
-
-    // Return the pointer to the copied data
-    return export_data;
+	return dyn_array_front(dyn_array);
 }
-
 
 void dyn_array_destroy(dyn_array_t *dyn_array) 
 {
-    if (!dyn_array) {
-        fprintf(stderr, "%s:%d null parameter\n", __FILE__, __LINE__);
-        return; 
-    }
-    // Clear all elements in the dynamic array, applying the destructor if provided
-    dyn_array_clear(dyn_array);
-
-    // Free the internal array if it exists
-    if (dyn_array->array) {
-        free(dyn_array->array);
-        dyn_array->array = NULL; // Avoid dangling pointers
-    }
-
-    // Free the dynamic array structure itself
-    free(dyn_array);
-    // Don't reset dyn_array here, as the caller is responsible for this
+	if (dyn_array) {
+		dyn_array_clear(dyn_array);
+		free(dyn_array->array);
+		free(dyn_array);
+	}
 }
 
-///
-/// Returns a pointer to the object at the front of the array
-/// \param dyn_array the dynamic array
-/// \return Pointer to front object (NULL on error/empty array)
-///
+
+
+
 void *dyn_array_front(const dyn_array_t *const dyn_array) 
 {
-    // Check if the dynamic array is valid and non-empty
-    if (dyn_array && dyn_array->size > 0 && dyn_array->array) 
-    {
-        // Return a pointer to the first element
-        return dyn_array->array;  // Already points to the start
-    }
-
-    fprintf(stderr, "%s:%d null or invalid parameters\n", __FILE__, __LINE__);
-    return NULL;
+	if (dyn_array && dyn_array->size) 
+	{
+		// If array is null, well, this is ok, because it's null
+		// but if array is broken, well, we can't help that
+		// nor can we detect that, so I guess it's not an error
+		return dyn_array->array;
+	}
+	return NULL;
 }
-
 
 bool dyn_array_push_front(dyn_array_t *const dyn_array, const void *const object) 
 {
-    // Validate inputs
-    if (!dyn_array || !object) 
-    {
-		fprintf(stderr, "%s:%d null or invalid parameters\n", __FILE__, __LINE__);
-        return false; // 
-    }
-
-    // Attempt to insert the object at the front of the array
-    return dyn_shift_insert(dyn_array, 0, 1, MODE_INSERT, object);
+	return dyn_shift_insert(dyn_array, 0, 1, MODE_INSERT, object);
 }
-
 
 bool dyn_array_pop_front(dyn_array_t *const dyn_array) 
 {
-    // Validate input
-    if (!dyn_array) 
-    {
-		fprintf(stderr, "%s:%d null or invalid parameters\n", __FILE__, __LINE__);
-        return false; 
-    }
-
-    // Check if the array is empty
-    if (dyn_array->size == 0) 
-    {
-		fprintf(stderr, "%s:%d null array\n", __FILE__, __LINE__);
-        return false; 
-    }
-
-    // Remove the object at the front of the array
-    return dyn_shift_remove(dyn_array, 0, 1, MODE_ERASE, NULL);
+	return dyn_shift_remove(dyn_array, 0, 1, MODE_ERASE, NULL);
 }
-
 
 bool dyn_array_extract_front(dyn_array_t *const dyn_array, void *const object) 
 {
-    // Validate inputs
-    if (!dyn_array || !object) 
-    {
-		fprintf(stderr, "%s:%d null or invalid parameters\n", __FILE__, __LINE__);
-        return false; \
-    }
-
-    // Check if the array is empty
-    if (dyn_array->size == 0) 
-    {
-		fprintf(stderr, "%s:%d nothing to extract\n", __FILE__, __LINE__);
-        return false; 
-    }
-
-    // Extract the object at the front of the array
-    return dyn_shift_remove(dyn_array, 0, 1, MODE_EXTRACT, object);
+	return dyn_shift_remove(dyn_array, 0, 1, MODE_EXTRACT, object);
 }
+
 
 
 
 void *dyn_array_back(const dyn_array_t *const dyn_array) 
 {
-    // Validate input
-    if (!dyn_array || dyn_array->size == 0) 
-    {
-		fprintf(stderr, "%s:%d null or invalid parameters\n", __FILE__, __LINE__);
-        return NULL; // Invalid array or empty
-    }
-
-    // Return the pointer to the last element
-    return DYN_ARRAY_POSITION(dyn_array, dyn_array->size - 1);
+	if (dyn_array && dyn_array->size) 
+	{
+		return DYN_ARRAY_POSITION(dyn_array, dyn_array->size - 1);
+	}
+	return NULL;
 }
 
 bool dyn_array_push_back(dyn_array_t *const dyn_array, const void *const object) 
 {
-    // Validate input
-    if (!dyn_array || !object) 
-    {
-		fprintf(stderr, "%s:%d null or invalid parameters\n", __FILE__, __LINE__);
-        return false; 
-	}
-    // Insert the object at the back of the array
-    return dyn_shift_insert(dyn_array, dyn_array->size, 1, MODE_INSERT, object);
+	return dyn_array && dyn_shift_insert(dyn_array, dyn_array->size, 1, MODE_INSERT, (void *const) object);
 }
 
 bool dyn_array_pop_back(dyn_array_t *const dyn_array) 
 {
-    // Validate input
-    if (!dyn_array || dyn_array->size == 0) 
-    {
-		fprintf(stderr, "%s:%d null or invalid parameters\n", __FILE__, __LINE__);
-        return false; 
-	}
-    // Remove the last element
-    return dyn_shift_remove(dyn_array, dyn_array->size - 1, 1, MODE_ERASE, NULL);
+	// Assert size because rollunder is scary, (though it should be handled correctly)
+	return dyn_array && dyn_array->size && dyn_shift_remove(dyn_array, dyn_array->size - 1, 1, MODE_ERASE, NULL);
 }
-
 
 bool dyn_array_extract_back(dyn_array_t *const dyn_array, void *const object) 
 {
-    // Validate input
-    if (!dyn_array || dyn_array->size == 0 || !object) 
-    {
-		fprintf(stderr, "%s:%d null or invalid parameters\n", __FILE__, __LINE__);
-        return false; 
-    }
-
-    // Extract the last element
-    return dyn_shift_remove(dyn_array, dyn_array->size - 1, 1, MODE_EXTRACT, object);
+	// Assert size because rollunder is scary, (though it should be handled correctly)
+	return dyn_array && dyn_array->size && dyn_shift_remove(dyn_array, dyn_array->size - 1, 1, MODE_EXTRACT, object);
 }
-
 
 
 void *dyn_array_at(const dyn_array_t *const dyn_array, const size_t index) 
 {
-    // Validate inputs
-    if (!dyn_array) 
-    {
-		fprintf(stderr, "%s:%d null or invalid parameters\n", __FILE__, __LINE__);
-        return NULL;
-    }
-
-    if (index >= dyn_array->size) 
-    {
-		fprintf(stderr, "%s:%d out of bounds index\n", __FILE__, __LINE__);
-        return NULL; 
-    }
-
-    // Return a pointer to the element at the given index
-    return DYN_ARRAY_POSITION(dyn_array, index);
+	if (dyn_array && index < dyn_array->size) 
+	{
+		return DYN_ARRAY_POSITION(dyn_array, index);
+	}
+	return NULL;
 }
-
 
 bool dyn_array_insert(dyn_array_t *const dyn_array, const size_t index, const void *const object) 
 {
-    if (!dyn_array || !object) {
-        fprintf(stderr, "%s:%d invalid parameters\n", __FILE__, __LINE__);
-        return false;
-    }
-
-    
-    if (index > dyn_array->size) {
-        fprintf(stderr, "%s:%d invalid index: %zu (must be <= %zu)\n", __FILE__, __LINE__, index, dyn_array->size);
-        return false;
-    }
-
-    
-    if (!dyn_array->array) {
-        fprintf(stderr, "%s:%d internal array is NULL\n", __FILE__, __LINE__);
-        return false;
-    }
-    return object && dyn_shift_insert(dyn_array, index, 1, MODE_INSERT, object);
+	// putting object at INDEX
+	// so we shift a gap at INDEX
+	return object && dyn_shift_insert(dyn_array, index, 1, MODE_INSERT, object);
 }
-
 
 bool dyn_array_erase(dyn_array_t *const dyn_array, const size_t index) 
 {
-    // Validate inputs
-    if (!dyn_array || index >= dyn_array->size) 
-    {
-		fprintf(stderr, "%s:%d Invalid parameters\n", __FILE__, __LINE__);
-        return false;
-    }
-
-    // Delegate removal logic to dyn_shift_remove
-    return dyn_shift_remove(dyn_array, index, 1, MODE_ERASE, NULL);
+	return dyn_shift_remove(dyn_array, index, 1, MODE_ERASE, NULL);
 }
 
 bool dyn_array_extract(dyn_array_t *const dyn_array, const size_t index, void *const object) 
 {
-	 // Validate parameters
-    if (!dyn_array || !object || index >= dyn_array->size) 
-    {
-		fprintf(stderr, "%s:%d  Invalid parameters\n", __FILE__, __LINE__);
-        return false;
-    }
 	return dyn_array && object && dyn_array->size > index
 		   && dyn_shift_remove(dyn_array, index, 1, MODE_EXTRACT, object);
 }
 
-/// 
-/// Removes and optionally destructs all array elements
-/// \param dyn_array the dynamic array
-///
+
 void dyn_array_clear(dyn_array_t *const dyn_array) 
 {
-    // Check if dyn_array is NULL
-    if (!dyn_array) {
-        fprintf(stderr, "%s:%d Invalid parameters: dyn_array is NULL\n", __FILE__, __LINE__);
-        return;  // Return early as we can't proceed without a valid array
-    }
-    // Check if the array is non-empty
-    if (dyn_array->size > 0) {
-        // If the array is non-empty, proceed to clear it
-        dyn_shift_remove(dyn_array, 0, dyn_array->size, MODE_ERASE, NULL);
-    } else {
-        // Optionally log that the array is empty
-        fprintf(stderr, "%s:%d Array is already empty, no elements to remove\n", __FILE__, __LINE__);
-    }
+	if (dyn_array && dyn_array->size) 
+	{
+		dyn_shift_remove(dyn_array, 0, dyn_array->size, MODE_ERASE, NULL);
+	}
 }
 
-/// 
-/// Tests if the array is empty
-/// \param dyn_array the dynamic array
-/// \return true if the array is empty (or NULL was passed), false otherwise
-///
 bool dyn_array_empty(const dyn_array_t *const dyn_array) 
 {
-    // Check if dyn_array is NULL
-    if (!dyn_array ||!dyn_array->array ) {
-        fprintf(stderr, "%s:%d Invalid parameter: dyn_array is NULL\n", __FILE__, __LINE__);
-        return true;  // If NULL is passed, consider it as empty
-    }
-
-
-    // Return true if the size is zero, false otherwise
-    return dyn_array->size == 0;
+	return dyn_array_size(dyn_array) == 0;
 }
 
-/// 
-/// Returns size of the array
-/// \param dyn_array the dynamic array
-/// \return the size of the array, 0 on error
-///
 size_t dyn_array_size(const dyn_array_t *const dyn_array) 
 {
-    // Check if dyn_array is NULL
-    if (!dyn_array) {
-        fprintf(stderr, "%s:%d Invalid parameter: dyn_array is NULL\n", __FILE__, __LINE__);
-        return 0;  // Return 0 for error
-    }
-
-    // If dyn_array is valid, return its size
-    return dyn_array->size;
+	if (dyn_array) 
+	{
+		return dyn_array->size;
+	}
+	return 0;  // hmmmmm...
 }
 
-/// 
-/// Returns the current capacity of the array
-/// \param dyn_array the dynamic array
-/// \return the capacity of the array, 0 on error
-///
 size_t dyn_array_capacity(const dyn_array_t *const dyn_array) 
 {
-    // Check if dyn_array is NULL
-    if (!dyn_array) {
-        fprintf(stderr, "%s:%d Invalid parameter: dyn_array is NULL\n", __FILE__, __LINE__);
-        return 0;  // Return 0 for error
-    }
-
-    // If dyn_array is valid, return its capacity
-    return dyn_array->capacity;
+	if (dyn_array) 
+	{
+		return dyn_array->capacity;
+	}
+	return 0;  // hmmmmm...
 }
-/// 
-/// Returns the size of the object stored in the array
-/// \param dyn_array the dynamic array
-/// \return the size of a stored object (bytes), 0 on error
-///
+
 size_t dyn_array_data_size(const dyn_array_t *const dyn_array) 
 {
-    // Check if dyn_array is NULL
-    if (!dyn_array) {
-        fprintf(stderr, "%s:%d Invalid parameter: dyn_array is NULL\n", __FILE__, __LINE__);
-        return 0;  // Return 0 for error
-    }
-
-    // If dyn_array is valid, return the size of the stored object
-    return dyn_array->data_size;
+	if (dyn_array) 
+	{
+		return dyn_array->data_size;
+	}
+	return 0;  // hmmmmm...
 }
 
-/// 
-/// Sorts the array according to the given comparator function
-/// compare(x,y) < 0 iff x < y
-/// compare(x,y) = 0 iff x == y
-/// compare(x,y) > 0 iff y > x
-/// Sort is not guaranteed to be stable
-/// \param dyn_array the dynamic array
-/// \param compare the comparison function
-/// \return bool representing success of the operation
-///
+
+
 bool dyn_array_sort(dyn_array_t *const dyn_array, int (*const compare)(const void *, const void *)) 
 {
-    // Check if dyn_array or compare function is NULL, or if the array is empty
-    if (!dyn_array || !compare || dyn_array->size == 0) {
-        fprintf(stderr, "%s:%d Invalid parameters: dyn_array is NULL, compare function is NULL, or array is empty\n", __FILE__, __LINE__);
-        return false;  // Return false if any parameter is invalid
-    }
-
-    // Perform sorting if parameters are valid
-    qsort(dyn_array->array, dyn_array->size, dyn_array->data_size, compare);
-    return true;  // Return true indicating the sorting operation was successful
+	// hah, turns out there's a quicksort in cstdlib.
+	// and it works exactly like we want it to
+	if (dyn_array && dyn_array->size && compare) 
+	{
+		qsort(dyn_array->array, dyn_array->size, dyn_array->data_size, compare);
+		return true;
+	}
+	return false;
 }
 
-/// 
-/// Inserts the given object into the correct sorted position
-/// increasing the container size by one
-/// and moving any contents beyond the sorted position down one
-/// Note: calling this on an unsorted array will insert it... somewhere
-/// \param dyn_array the dynamic array
-/// \param object the object to insert
-/// \param compare the comparison function
-/// \return bool representing success of the operation
-///
-bool dyn_array_insert_sorted(dyn_array_t *const dyn_array, const void *const object, int (*const compare)(const void *, const void *)) 
+
+bool dyn_array_insert_sorted(dyn_array_t *const dyn_array, const void *const object,
+							 int (*const compare)(const void *, const void *)) 
 {
-    // Check if dyn_array, object, or compare is NULL
-    if (!dyn_array || !object || !compare) {
-        fprintf(stderr, "%s:%d Invalid parameters: dyn_array is NULL, object is NULL, or compare function is NULL\n", __FILE__, __LINE__);
-        return false;  // Return false if any parameter is invalid
-    }
-
-    // Check if dyn_array has sufficient capacity to insert new element
-    if (dyn_array->size >= dyn_array->capacity) {
-        fprintf(stderr, "%s:%d Insufficient capacity in dynamic array\n", __FILE__, __LINE__);
-        return false;  // Return false if the array is full
-    }
-
-    // Determine the correct position to insert the object
-    size_t ordered_position = 0;
-    if (dyn_array->size) {
-        // Find the correct sorted position for the new object
-        while (ordered_position < dyn_array->size && compare(object, DYN_ARRAY_POSITION(dyn_array, ordered_position)) > 0) {
-            ++ordered_position;
-        }
-    }
-
-    // Attempt to insert the object at the correct position
-    return dyn_shift_insert(dyn_array, ordered_position, 1, MODE_INSERT, object);
+	if (dyn_array && compare && object) 
+	{
+		size_t ordered_position = 0;
+		if (dyn_array->size) 
+		{
+			while (ordered_position < dyn_array->size
+				   && compare(object, DYN_ARRAY_POSITION(dyn_array, ordered_position)) > 0) 
+			{
+				++ordered_position;
+			}
+		}
+		return dyn_shift_insert(dyn_array, ordered_position, 1, MODE_INSERT, object);
+	}
+	return false;
 }
 
-/// 
-/// Applies the given function to every object in the array
-/// \param dyn_array the dynamic array
-/// \param func the function to apply
-/// \param arg argument that will be passed to the function (as parameter 2)
-/// \return bool representing success of operation (really just pointer and size checks)
-///
+
 bool dyn_array_for_each(dyn_array_t *const dyn_array, void (*const func)(void *const, void *), void *arg) 
 {
-    // Check if the input parameters are valid (not NULL)
-    if (!dyn_array || !dyn_array->array || !func) {
-        fprintf(stderr, "%s:%d Invalid parameters passed to dyn_array_for_each\n", __FILE__, __LINE__);
-        return false; // Return false if any parameter is NULL
-    }
-
-    // Ensure the array has a valid size (non-negative and within bounds)
-    if (dyn_array->size == 0) {
-        fprintf(stderr, "%s:%d Array is empty, no elements to apply function to\n", __FILE__, __LINE__);
-        return false; // Return false if the array is empty
-    }
-
-    // Validate that the data array is not corrupted or invalid
-    if (!dyn_array->array) {
-        fprintf(stderr, "%s:%d Array pointer is NULL or corrupted\n", __FILE__, __LINE__);
-        return false; // Return false if the data array is NULL
-    }
-
-    // Ensure that each element can be safely accessed
-    uint8_t *data_walker = (uint8_t *)dyn_array->array;
-    for (size_t idx = 0; idx < dyn_array->size; ++idx, data_walker += dyn_array->data_size) {
-        // Apply the given function to each object in the array
-        func((void *const)data_walker, arg);
-    }
-
-    return true; // Return true if the operation is successful
+	if (dyn_array && dyn_array->array && func) 
+	{
+		// So I just noticed we never check the data array ever
+		// Which is both unsafe and potentially undefined behavior
+		// Although we're the only ones that touch the pointer and we always validate it.
+		// So it's questionable. We'll check it here.
+		// I'm considering taking these out. Anything under our control that touches this pointer is safe
+		// Not checking it will segfault, which is good for debugging, but not so much for the end user
+		// but good for the tester. But the tester may not trigger this if it's a crazy edge case.
+		// HMMMMMMMMM...
+		uint8_t *data_walker = (uint8_t *) dyn_array->array;
+		for (size_t idx = 0; idx < dyn_array->size; ++idx, data_walker += dyn_array->data_size) 
+		{
+			func((void *const) data_walker, arg);
+		}
+		return true;
+	}
+	return false;
 }
-
 
 
 /*
