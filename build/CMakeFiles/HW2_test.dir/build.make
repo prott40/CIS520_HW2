@@ -93,6 +93,7 @@ HW2_test_EXTERNAL_OBJECTS =
 HW2_test: CMakeFiles/HW2_test.dir/test/tests.cpp.o
 HW2_test: CMakeFiles/HW2_test.dir/build.make
 HW2_test: libdyn_array.a
+HW2_test: libprocessing_scheduling.a
 HW2_test: CMakeFiles/HW2_test.dir/link.txt
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/homes/pmrottin/hw2/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Linking CXX executable HW2_test"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/HW2_test.dir/link.txt --verbose=$(VERBOSE)

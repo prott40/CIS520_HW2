@@ -93,6 +93,7 @@ analysis_EXTERNAL_OBJECTS =
 analysis: CMakeFiles/analysis.dir/src/analysis.c.o
 analysis: CMakeFiles/analysis.dir/build.make
 analysis: libdyn_array.a
+analysis: libprocessing_scheduling.a
 analysis: CMakeFiles/analysis.dir/link.txt
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/homes/pmrottin/hw2/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Linking C executable analysis"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/analysis.dir/link.txt --verbose=$(VERBOSE)
