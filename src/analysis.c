@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-//include headers: dyn_array, processing_scheduling
+// Include headers: dyn_array, processing_scheduling
 #include "dyn_array.h"
 #include "processing_scheduling.h"
 
@@ -11,59 +11,67 @@
 #define SJF "SJF"
 
 // Add and comment your analysis code in this function.
-// THIS IS NOT FINISHED.
 int main(int argc, char **argv) 
 {
-	if (argc < 3) 
-	{
-		printf("%s <pcb file> <schedule algorithm> [quantum]\n", argv[0]);
-		return EXIT_FAILURE;
-	}
+    if (argc < 3) 
+    {
+        printf("%s <pcb file> <schedule algorithm> [quantum]\n", argv[0]);
+        return EXIT_FAILURE;
+    }
 
-	//make fcfs scheduler
-	ScheduleResult_t * FCFS_Result = (ScheduleResult_t*)malloc(sizeof(ScheduleResult_t));
+    // Allocate memory for FCFS scheduler results
+    ScheduleResult_t *FCFS_Result = (ScheduleResult_t *)malloc(sizeof(ScheduleResult_t));
+    if (!FCFS_Result) 
+    {
+        fprintf(stderr, "Error: Memory allocation failed for FCFS_Result.\n");
+        return EXIT_FAILURE;
+    }
 
-	//instantiate dyn_array
-		//(might need to be made a pointer)
-	dyn_array_t * binArray = (dyn_array_t*)malloc(sizeof(dyn_array_t));
+    // Load the process control blocks from the binary file
+    dyn_array_t *binArray = load_process_control_blocks(argv[0]);
+    if (!binArray) 
+    {
+        fprintf(stderr, "Error: Failed to load process control blocks from file %s.\n", argv[1]);
+        free(FCFS_Result);
+        return EXIT_FAILURE;
+    }
 
+    // Perform the FCFS scheduling
+    bool res = first_come_first_serve(binArray, FCFS_Result);
 
-	//instantiate binary and set array to the result given the file path
-		//Find file path from input args
-	binArray = load_process_control_blocks(argv[0]);
+    // Check if the scheduling was successful
+    if (res) 
+    {
+        printf("Scheduling completed successfully.\n");
+    } 
+    else 
+    {
+        fprintf(stderr, "Scheduling failed.\n");
+        dyn_array_destroy(binArray);
+        free(FCFS_Result);
+        return EXIT_FAILURE;
+    }
 
-	//instantiate FCFS sorter and pass binary info to it
-	bool first_come_first_serve(binArray, FCFS_Result)
+    // Open the README.md file for appending results
+    FILE *pFile = fopen("README.md", "a");
+    if (!pFile) 
+    {
+        fprintf(stderr, "Error: Failed to open README.md for writing.\n");
+        dyn_array_destroy(binArray);
+        free(FCFS_Result);
+        return EXIT_FAILURE;
+    }
 
-	//maybe error check using boolean
+    // Write results to README.md
+    fprintf(pFile, "Average wait time: %.2f\n", FCFS_Result->average_waiting_time);
+    fprintf(pFile, "Average turnaround time: %.2f\n", FCFS_Result->average_turnaround_time);
+    fprintf(pFile, "Total run time: %lu\n", FCFS_Result->total_run_time);
 
+    fclose(pFile);
 
-	//send data to README
-		//open file using fopen("filepath.txt","a");
-		//append info to the end using fwrite(stuff to write,"a")
-		//fclose(objectName) at the end
-		FILE *pFile;
+    // Clean up
+    dyn_array_destroy(binArray);
+    free(FCFS_Result);
 
-		//opens README and appends next stuff to the end
-
-			!!!!!FIGURE OUT EXACT FILE PATH!!!!!
-			
-		pFile = fopen("README.md","a");
-
-		//float average_waiting_time;	 // the average waiting time in the ready queue until first schedue on the cpu
-		//float average_turnaround_time;  // the average completion time of the PCBs
-		//unsigned long total_run_time;   // the total time to process all the PCBs in the ready queue
-		
-		fprintf(pFile,"Average wait time: ");
-		fprintf(pFile, FCFS_Result->average_waiting_time);
-
-		fprintf(pFile,"Average turnaround time: ");
-		fprintf(pFile, FCFS_Result->average_turnaround_time);
-
-		fprintf(pFile,"Total run time: ");
-		fprintf(pFile, FCFS_Result->total_run_time);
-
-		fclose(pFile);
-
-	return EXIT_SUCCESS;
+    return EXIT_SUCCESS;
 }
