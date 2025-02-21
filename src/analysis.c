@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 // Include headers: dyn_array, processing_scheduling
 #include "dyn_array.h"
 #include "processing_scheduling.h"
@@ -14,11 +15,23 @@
 // Add and comment your analysis code in this function.
 int main(int argc, char **argv) 
 {
+    
     if (argc < 3) 
     {
         printf("%s <pcb file> <schedule algorithm> [quantum]\n", argv[0]);
         return EXIT_FAILURE;
     }
+    // get time for read me
+    time_t rawtime;
+    struct tm *timeinfo;
+    char time_buffer[80];
+
+    time(&rawtime);
+    timeinfo = localtime(&rawtime);
+
+    strftime(time_buffer, sizeof(time_buffer), "%Y-%m-%d %H:%M:%S", timeinfo);
+    
+
     // added need ../ to access the file wanted and \n at end of string
     size_t file_name_length = strnlen(argv[1],20) + 3 + 1;
 
@@ -63,6 +76,7 @@ int main(int argc, char **argv)
     }
 
     // Open the README.md file for appending results
+    // from https://stackoverflow.com/questions/19429138/append-to-the-end-of-a-file-in-c
     FILE *pFile = fopen("../README.md", "a");
     if (!pFile) 
     {
@@ -73,9 +87,11 @@ int main(int argc, char **argv)
     }
 
     // Write results to README.md
+    fprintf(pFile,"---------%s-----------\n",time_buffer);
     fprintf(pFile, "Average wait time: %.2f\n", FCFS_Result->average_waiting_time);
     fprintf(pFile, "Average turnaround time: %.2f\n", FCFS_Result->average_turnaround_time);
     fprintf(pFile, "Total run time: %lu\n", FCFS_Result->total_run_time);
+    fprintf(pFile,"---------------------------------------\n");
 
     fclose(pFile);
 
