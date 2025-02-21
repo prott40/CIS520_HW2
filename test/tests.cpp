@@ -26,7 +26,8 @@ TEST(LoadProcessControlBlocks, FileDoesNotExist) {
         score += 5;
     } // Award 5 points for this test case
 }
-/*
+// tests for preston's laod pcb
+///*
 // if file is incomplete
 TEST(LoadProcessControlBlocks, CorruptedOrIncompleteFile) {
     const char *filename = "incomplete_file.bin";
@@ -49,7 +50,95 @@ TEST(LoadProcessControlBlocks, CorruptedOrIncompleteFile) {
 
     remove(filename);
 }
-*/
+// if file is correct
+TEST(LoadProcessControlBlocks, ValidFile_imitate_binary) {
+    const char *filename = "valid_file.bin";
+    FILE *file = fopen(filename, "wb");
+    ASSERT_NE(file, nullptr); // Ensure the file opens correctly
+
+    // Write the number of PCBs (N = 2)
+    uint32_t pcb_count = 2;
+    fwrite(&pcb_count, sizeof(uint32_t), 1, file);
+
+    // Write the first PCB (burst time, priority, arrival time)
+    uint32_t burst_time_1 = 5, priority_1 = 1, arrival_1 = 0;
+    fwrite(&burst_time_1, sizeof(uint32_t), 1, file);
+    fwrite(&priority_1, sizeof(uint32_t), 1, file);
+    fwrite(&arrival_1, sizeof(uint32_t), 1, file);
+
+    // Write the second PCB
+    uint32_t burst_time_2 = 8, priority_2 = 2, arrival_2 = 2;
+    fwrite(&burst_time_2, sizeof(uint32_t), 1, file);
+    fwrite(&priority_2, sizeof(uint32_t), 1, file);
+    fwrite(&arrival_2, sizeof(uint32_t), 1, file);
+
+    fclose(file);
+
+    // Call the function to load the PCBs
+    dyn_array_t *result = load_process_control_blocks(filename);
+    ASSERT_NE(result, nullptr); // Ensure the function returns a valid dyn_array_t
+    ASSERT_EQ(dyn_array_size(result), pcb_count); // Ensure the array size matches the PCB count
+
+    // Validate the first PCB
+    ProcessControlBlock_t *pc = (ProcessControlBlock_t *)dyn_array_at(result, 0);
+    ASSERT_NE(pc, nullptr); // Ensure the pointer is valid
+    EXPECT_EQ((int)pc->remaining_burst_time, (int)burst_time_1); // Validate burst time
+    EXPECT_EQ((int)pc->priority, (int)priority_1);               // Validate priority
+    EXPECT_EQ((int)pc->arrival, (int)arrival_1);                 // Validate arrival time
+    EXPECT_EQ(pc->started, false);                              // Validate default initialization
+
+    // Validate the second PCB
+    pc = (ProcessControlBlock_t *)dyn_array_at(result, 1);
+    ASSERT_NE(pc, nullptr);
+    EXPECT_EQ((int)pc->remaining_burst_time, (int)burst_time_2);
+    EXPECT_EQ((int)pc->priority, (int)priority_2);
+    EXPECT_EQ((int)pc->arrival, (int)arrival_2);
+    EXPECT_EQ(pc->started, false);
+
+    // Assign score for passing this test case
+    score += 20; 
+
+    // Clean up
+    dyn_array_destroy(result);
+    remove(filename);
+}
+
+TEST(LoadProcessControlBlocksTest, ValidFile_ReadActual) {
+    const char *test_file = "../pcb.bin"; // Path to the actual binary file
+
+    // Load the process control blocks from the binary file
+    dyn_array_t *pcb_array = load_process_control_blocks(test_file);
+    ASSERT_NE(pcb_array, nullptr);
+
+    // Get the size of the dynamic array
+    size_t pcb_count = dyn_array_size(pcb_array);
+    printf("Loaded %zu ProcessControlBlock_t entries from %s\n", pcb_count, test_file);
+
+    // Verify that the size is non-zero (we expect at least one PCB)
+    EXPECT_GT((int)pcb_count, 0);
+
+    // Dynamically inspect the loaded PCBs
+    for (size_t i = 0; i < pcb_count; ++i) {
+        ProcessControlBlock_t *loaded_pcb = (ProcessControlBlock_t *)dyn_array_at(pcb_array, i);
+        ASSERT_NE(loaded_pcb, nullptr);
+
+        // Print details for debugging
+        printf("PCB %zu: Remaining Burst = %u, Priority = %u, Arrival = %u\n",
+               i, loaded_pcb->remaining_burst_time, loaded_pcb->priority, loaded_pcb->arrival);
+
+        // Example assertion (update based on expected properties of the binary file)
+        EXPECT_GE((int)loaded_pcb->remaining_burst_time, 0); // Burst time should be non-negative
+        EXPECT_GE((int)loaded_pcb->priority, 0);            // Priority should be non-negative
+    }
+    score += 20;
+    // Clean up
+    dyn_array_destroy(pcb_array);
+   
+}
+
+//*/
+// tests for chris's load pcb
+/*
 TEST(LoadProcessControlBlocks, CorruptedOrIncompleteFile) {
     const char *filename = "corrupted_file.bin";
 
@@ -100,7 +189,7 @@ TEST(LoadProcessControlBlocksTest, ValidFileRead)
     // Clean up
     dyn_array_destroy(pcb_array);
 }
-
+//*/
 // Test cases for first_come_first_serve
 // check null queue
 TEST(FirstComeFirstServe, NullReadyQueue) {
@@ -158,10 +247,12 @@ TEST(FirstComeFirstServe, SingleProcess) {
 }
 
 // check multiple processes
+// check multiple processes (using three processes as expected)
 TEST(FirstComeFirstServe, MultipleProcesses) {
-    ProcessControlBlock_t pcb1 = {10, 1, 0, false}; // Remaining burst time: 10, priority: 1, arrival: 0
-    ProcessControlBlock_t pcb2 = {5, 2, 1, false};  // Remaining burst time: 5, priority: 2, arrival: 1
-    ProcessControlBlock_t pcb3 = {8, 3, 2, false};  // Remaining burst time: 8, priority: 3, arrival: 2
+    // Use three processes
+    ProcessControlBlock_t pcb1 = {10, 0, 0, false};  // Arrival: 0, Burst: 10
+    ProcessControlBlock_t pcb2 = {5, 0, 1, false};   // Arrival: 1, Burst: 5
+    ProcessControlBlock_t pcb3 = {8, 0, 2, false};   // Arrival: 2, Burst: 8
 
     dyn_array_t *ready_queue = dyn_array_create(3, sizeof(ProcessControlBlock_t), nullptr);
     ASSERT_NE(ready_queue, nullptr);
@@ -172,34 +263,48 @@ TEST(FirstComeFirstServe, MultipleProcesses) {
     ScheduleResult_t result = {0.0f, 0.0f, 0UL};
     bool success = first_come_first_serve(ready_queue, &result);
     EXPECT_EQ(success, true);
-    EXPECT_EQ((int)result.average_turnaround_time, 15); //(10 + 14 + 21) / 3 = 15
-    EXPECT_EQ((int)result.average_waiting_time, 7);    // (0 + 9 + 13) / 3 = 7.33
-    EXPECT_EQ((int)result.total_run_time, 23);         // Last process finishes at time 23
+    EXPECT_EQ((int)result.average_turnaround_time, 15); // (10 + 14 + 21) / 3 = 15
+    EXPECT_EQ((int)result.average_waiting_time, 7);     // (0 + 9 + 13) / 3 ≈ 7 (if truncated)
+    EXPECT_EQ((int)result.total_run_time, 23);          // Last process finishes at time 23
     score += 20; // Award 20 points for this test case
 
     dyn_array_destroy(ready_queue);
 }
 
-// check out of order arrival
+
 TEST(FirstComeFirstServe, ProcessesOutOfOrderArrival) {
-    ProcessControlBlock_t pcb1 = {8, 1, 2, false};  // Arrival: 2
-    ProcessControlBlock_t pcb2 = {5, 2, 1, false};  // Arrival: 1
-    ProcessControlBlock_t pcb3 = {10, 3, 0, false}; // Arrival: 0
+    // Define processes out of order
+    ProcessControlBlock_t pcb1 = {15, 0, 3, false};  // Arrival: 3, Burst: 15
+    ProcessControlBlock_t pcb2 = {10, 0, 2, false};  // Arrival: 2, Burst: 10
+    ProcessControlBlock_t pcb3 = {5, 0, 1, false};   // Arrival: 1, Burst: 5
+    ProcessControlBlock_t pcb4 = {15, 0, 0, false};  // Arrival: 0, Burst: 15
 
-    dyn_array_t *ready_queue = dyn_array_create(3, sizeof(ProcessControlBlock_t), nullptr);
+    // Create the dynamic array
+    dyn_array_t *ready_queue = dyn_array_create(4, sizeof(ProcessControlBlock_t), nullptr);
     ASSERT_NE(ready_queue, nullptr);
-    dyn_array_push_back(ready_queue, &pcb1);
-    dyn_array_push_back(ready_queue, &pcb2);
-    dyn_array_push_back(ready_queue, &pcb3);
 
+    // Add processes to the ready queue (out of order)
+    dyn_array_push_back(ready_queue, &pcb4);  // Arrival: 0
+    dyn_array_push_back(ready_queue, &pcb2);  // Arrival: 2
+    dyn_array_push_back(ready_queue, &pcb3);  // Arrival: 1
+    dyn_array_push_back(ready_queue, &pcb1);  // Arrival: 3
+
+    // Initialize result
     ScheduleResult_t result = {0.0f, 0.0f, 0UL};
+
+    // Execute the scheduling function
     bool success = first_come_first_serve(ready_queue, &result);
+
+    // Validate results
     EXPECT_EQ((int)success, true);
-    EXPECT_EQ((int)result.average_turnaround_time, 15); // (10 + 14 + 23) / 3 = 19
-    EXPECT_EQ((int)result.average_waiting_time, 7);    //(0 + 10 + 15) / 3 = 11
-    EXPECT_EQ((int)result.total_run_time, 23);         // Last process finishes at time 23
+    EXPECT_EQ((int)result.average_turnaround_time, 26); // (15 + 19 + 28 + 42) / 4 = 26
+    EXPECT_EQ((int)result.average_waiting_time, 14);    // (0 + 14 + 18 + 27) / 4 ≈ 14.75 (truncated)
+    EXPECT_EQ((int)result.total_run_time, 45);          // Last process finishes at time 45
+
+    // Award points
     score += 25; // Award 25 points for this test case
 
+    // Clean up
     dyn_array_destroy(ready_queue);
 }
 

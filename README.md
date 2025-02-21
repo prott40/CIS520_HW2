@@ -11,3 +11,8 @@ You can manually copy the time analysis from console and paste it to this file, 
 ---------------------------------------------------------------------------
 Add your scheduling algorithm analysis below this line in a readable format.
 ---------------------------------------------------------------------------
+---------2025-02-21 10:13:44-----------
+Average wait time: 16.00
+Average turnaround time: 28.50
+Total run time: 50
+---------------------------------------

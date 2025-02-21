@@ -14,7 +14,7 @@
 int arrival_time_compare(const void *a, const void *b) {
     const ProcessControlBlock_t *pcb1 = (const ProcessControlBlock_t *)a;
     const ProcessControlBlock_t *pcb2 = (const ProcessControlBlock_t *)b;
-    return pcb1->arrival - pcb2->arrival; // Sort in ascending order of arrival
+    return (pcb1->arrival < pcb2->arrival) ? -1 : (pcb1->arrival > pcb2->arrival);
 }
 
 // private function
@@ -23,6 +23,7 @@ void virtual_cpu(ProcessControlBlock_t *process_control_block)
 	// decrement the burst time of the pcb
 	--process_control_block->remaining_burst_time;
 }
+// orginal fcfs
 // Runs the First Come First Served Process Scheduling algorithm over the incoming ready_queue
 // \param ready queue a dyn_array of type ProcessControlBlock_t that contain be up to N elements
 // \param result used for first come first served stat tracking \ref ScheduleResult_t
@@ -87,7 +88,8 @@ bool first_come_first_serve(dyn_array_t *ready_queue, ScheduleResult_t *result) 
 
     return true;  // Success
 }
-*/
+//*/
+// current fcfs 
 bool first_come_first_serve(dyn_array_t *ready_queue, ScheduleResult_t *result) {
     // Validate inputs
     if (!ready_queue || !result) {
@@ -167,15 +169,94 @@ bool first_come_first_serve(dyn_array_t *ready_queue, ScheduleResult_t *result) 
     return true;  // Success
 }
 
-
-
+/*
+    // Runs the Shortest Job First Scheduling algorithm over the incoming ready_queue
+	// \param ready queue a dyn_array of type ProcessControlBlock_t that contain be up to N elements
+	// \param result used for shortest job first stat tracking \ref ScheduleResult_t
+	// \return true if function ran successful else false for an error
 bool shortest_job_first(dyn_array_t *ready_queue, ScheduleResult_t *result) 
 {
-	UNUSED(ready_queue);
-	UNUSED(result);
-	return false;
+	bool shortest_job_first(dyn_array_t *ready_queue, ScheduleResult_t *result) {
+        // Validate inputs
+        if (!ready_queue || !result) {
+            fprintf(stderr, "%s:%d invalid parameters\n", __FILE__, __LINE__);
+            return false;
+        }
+    
+        size_t n = dyn_array_size(ready_queue);
+        if (n == 0) {
+            // If the queue is empty, zero out the results
+            result->average_waiting_time = 0.0f;
+            result->average_turnaround_time = 0.0f;
+            result->total_run_time = 0UL;
+            return true;
+        }
+    
+        // Sort the ready queue by burst time and then by arrival time
+        if (!dyn_array_sort(ready_queue, sjf_compare)) {
+            fprintf(stderr, "Failed to sort ready queue\n");
+            return false;
+        }
+    
+        // Debugging: Print the sorted processes
+        printf("Sorted Processes (Burst Time, Arrival Time):\n");
+        for (size_t i = 0; i < n; ++i) {
+            ProcessControlBlock_t *pcb = (ProcessControlBlock_t *)dyn_array_at(ready_queue, i);
+            if (pcb) {
+                printf("Process %zu: Burst = %u, Arrival = %u\n", i, pcb->remaining_burst_time, pcb->arrival);
+            }
+        }
+    
+        // Initialize statistics
+        unsigned long total_wait_time = 0;
+        unsigned long total_turnaround_time = 0;
+        unsigned long total_run_time = 0;
+        uint32_t current_time = 0;
+    
+        // Iterate over the sorted processes
+        for (size_t i = 0; i < n; ++i) {
+            ProcessControlBlock_t *pcb = (ProcessControlBlock_t *)dyn_array_at(ready_queue, i);
+            if (!pcb) {
+                fprintf(stderr, "Process Control Block is NULL\n");
+                return false;
+            }
+    
+            // If the current time is less than the arrival time, CPU is idle until process arrives
+            if (current_time < pcb->arrival) {
+                current_time = pcb->arrival;
+            }
+    
+            // Calculate wait time and turnaround time
+            uint32_t wait_time = current_time - pcb->arrival;
+            uint32_t turnaround_time = wait_time + pcb->remaining_burst_time;
+    
+            // Update statistics
+            total_wait_time += wait_time;
+            total_turnaround_time += turnaround_time;
+            total_run_time = current_time + pcb->remaining_burst_time;
+    
+            // Debugging: Print wait time and turnaround time for each process
+            printf("Process %zu: Wait Time = %u, Turnaround Time = %u\n", i, wait_time, turnaround_time);
+    
+            // Move current time forward
+            current_time += pcb->remaining_burst_time;
+        }
+    
+        // Calculate averages
+        result->average_waiting_time = (float)total_wait_time / n;
+        result->average_turnaround_time = (float)total_turnaround_time / n;
+        result->total_run_time = total_run_time;
+    
+        // Debugging: Print final results
+        printf("Total Waiting Time = %lu, Total Turnaround Time = %lu, Total Run Time = %lu\n",
+               total_wait_time, total_turnaround_time, total_run_time);
+        printf("Average Waiting Time = %.2f, Average Turnaround Time = %.2f\n",
+               result->average_waiting_time, result->average_turnaround_time);
+    
+        return true;
+    }
 }
-
+//*/
 bool priority(dyn_array_t *ready_queue, ScheduleResult_t *result) 
 {
 	UNUSED(ready_queue);
@@ -191,7 +272,8 @@ bool round_robin(dyn_array_t *ready_queue, ScheduleResult_t *result, size_t quan
 	return false;
 }
 
-/*
+///*
+// preston's load_process_control_blocks
 dyn_array_t *load_process_control_blocks(const char *input_file) 
 {
     // check invaild parametes
@@ -224,22 +306,21 @@ dyn_array_t *load_process_control_blocks(const char *input_file)
         return NULL;
     }
 
-    // Check for overflow risk and invalid values
-    const uint32_t MAX_PCB_COUNT = 100000; // Set a reasonable upper limit
+    // Check for overflow risk and invalid values 
+    const uint32_t MAX_PCB_COUNT = 1500000000; // Set to be larger than pcb.bin
     if (pcb_count == 0 || pcb_count > MAX_PCB_COUNT) {
         fprintf(stderr, "%s:%d invalid PCB count: %u\n", __FILE__, __LINE__, pcb_count);
         fclose(ptr);
         return NULL;
     }
 
-    long expected_size = sizeof(uint32_t) + pcb_count * (3 * sizeof(uint32_t));
-    if (file_size < expected_size) {
-        fprintf(stderr, "%s:%d file too small (size=%ld, expected=%ld)\n", __FILE__, __LINE__, file_size, expected_size);
-        fclose(ptr);
-        return NULL;
-    }
+    // long expected_size = sizeof(uint32_t) + pcb_count * (3 * sizeof(uint32_t));
+    // if (file_size < expected_size) {
+    //     fprintf(stderr, "%s:%d file too small (size=%ld, expected=%ld)\n", __FILE__, __LINE__, file_size, expected_size);
+    //     fclose(ptr);
+    //     return NULL;
+    // }
 	
-	//dyn_array_t *dyn_array = dyn_array_create(0, sizeof(ProcessControlBlock_t), free);
 	
     // load process control block
     ProcessControlBlock_t *pc = (ProcessControlBlock_t*)malloc(sizeof(ProcessControlBlock_t) * pcb_count);
@@ -258,7 +339,7 @@ dyn_array_t *load_process_control_blocks(const char *input_file)
             fclose(ptr);
             return NULL;
         }
-
+        printf("burst = %u priority = %u arrival = %u\n", pc[i].remaining_burst_time, pc[i].priority, pc[i].arrival);
         pc[i].started = false;
     }
 
@@ -273,7 +354,9 @@ dyn_array_t *load_process_control_blocks(const char *input_file)
 	free(pc);
     return dyn_array;
 }
-*/
+//*/
+/*
+// chris load_process_control_blocks/
 dyn_array_t *load_process_control_blocks(const char *input_file)
 {
     // check invaild parametes
@@ -320,14 +403,14 @@ dyn_array_t *load_process_control_blocks(const char *input_file)
             dyn_array_destroy(dyn_array); // Clean up the dynamic array
             return NULL;
         }
-        printf(" Burst = %u priority %u: Arrival = %u,\n",  pcb.remaining_burst_time,pcb.priority, pcb.arrival);
+        //printf(" Burst = %u priority %u: Arrival = %u,\n",  pcb.remaining_burst_time,pcb.priority, pcb.arrival);
     }
 
     fclose(file);
     return dyn_array;
 }
 
-
+//*/
 
 bool shortest_remaining_time_first(dyn_array_t *ready_queue, ScheduleResult_t *result) 
 {
