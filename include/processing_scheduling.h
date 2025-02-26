@@ -26,6 +26,11 @@
 		unsigned long total_run_time;   // the total time to process all the PCBs in the ready queue
 	} 
 	ScheduleResult_t;
+	// comaprison for priority using the dynamic array sort function
+	// \param a is first value
+	// \param b is second value
+	// built form sjf and arival time comapres
+	int priority_compare(const void *a, const void *b);
 
 	// comaprison funcion to compare burst times times using the dynamic array sort funtion
 	// \param a is the first value
