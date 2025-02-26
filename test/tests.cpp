@@ -308,13 +308,275 @@ TEST(FirstComeFirstServe, ProcessesOutOfOrderArrival) {
     dyn_array_destroy(ready_queue);
 }
 
+TEST(ShortestJobFirst, NullReadyQueue) {
+    // create array and result empty
+    dyn_array_t *ready_queue = nullptr;
+    ScheduleResult_t result = {0.0f, 0.0f, 0UL};
+    // run to see if catch faiure
+    bool success = shortest_job_first(ready_queue, &result);
+    EXPECT_EQ(success, false);
+    // increase score
+    score += 5;
+}
+
+TEST(ShortestJobFirst, NullResult) {
+    // creates array and make sure it empty
+    dyn_array_t *ready_queue = dyn_array_create(0, sizeof(ProcessControlBlock_t), nullptr);
+    ASSERT_NE(ready_queue, nullptr);
+    // gice result param a null value to check if it fails
+    bool success = shortest_job_first(ready_queue, nullptr);
+    EXPECT_EQ(success, false);
+    // increase score
+    score += 5;
+    // clean up
+    dyn_array_destroy(ready_queue);
+}
+
+TEST(ShortestJobFirst, EmptyReadyQueue) {
+    // create empty queue
+    dyn_array_t *ready_queue = dyn_array_create(0, sizeof(ProcessControlBlock_t), nullptr);
+    ASSERT_NE(ready_queue, nullptr);
+    // set reslt
+    ScheduleResult_t result = {0.0f, 0.0f, 0UL};
+    // run shortest on empty
+    bool success = shortest_job_first(ready_queue, &result);
+    // check expected values
+    EXPECT_EQ(success, true);
+    EXPECT_EQ((int)result.average_turnaround_time, 0);
+    EXPECT_EQ((int)result.average_waiting_time, 0);
+    EXPECT_EQ((int)result.total_run_time, 0);
+    // increase score
+    score += 10;
+    // clean up
+    dyn_array_destroy(ready_queue);
+}
+
+TEST(ShortestJobFirst, SingleProcess) {
+    // give a single process
+    ProcessControlBlock_t pcb = {5, 1, 0, false};
+    dyn_array_t *ready_queue = dyn_array_create(1, sizeof(ProcessControlBlock_t), nullptr);
+    ASSERT_NE(ready_queue, nullptr);
+    // add to back of array
+    dyn_array_push_back(ready_queue, &pcb);
+    // create result
+    ScheduleResult_t result = {0.0f, 0.0f, 0UL};
+    // run single process
+    bool success = shortest_job_first(ready_queue, &result);
+    // check results
+    EXPECT_EQ(success, true);
+    EXPECT_EQ((int)result.average_turnaround_time, 5);
+    EXPECT_EQ((int)result.average_waiting_time, 0);
+    EXPECT_EQ((int)result.total_run_time, 5);
+    // increase score
+    score += 15;
+    // clean up
+    dyn_array_destroy(ready_queue);
+}
+
+TEST(ShortestJobFirst, MultipleProcesses) {
+    // create muliple processs
+    ProcessControlBlock_t pcb1 = {8, 0, 0, false};
+    ProcessControlBlock_t pcb2 = {4, 0, 1, false};
+    ProcessControlBlock_t pcb3 = {2, 0, 2, false};
+    // allocate array
+    dyn_array_t *ready_queue = dyn_array_create(3, sizeof(ProcessControlBlock_t), nullptr);
+    ASSERT_NE(ready_queue, nullptr);
+    // add proccesses to array
+    dyn_array_push_back(ready_queue, &pcb1);
+    dyn_array_push_back(ready_queue, &pcb2);
+    dyn_array_push_back(ready_queue, &pcb3);
+    // create result
+    ScheduleResult_t result = {0.0f, 0.0f, 0UL};
+    // run alogorith
+    bool success = shortest_job_first(ready_queue, &result);
+    // make sure is true and return proper runtime
+    EXPECT_EQ(success, true);
+    EXPECT_EQ((int)result.total_run_time, 16);
+    // increase score
+    score += 20;
+    // clean up
+    dyn_array_destroy(ready_queue);
+}
+
+TEST(ShortestJobFirst, DifferentArrivalTimes) {
+    //create pcb blocks
+    ProcessControlBlock_t pcb1 = {5, 0, 0, false};
+    ProcessControlBlock_t pcb2 = {2, 0, 3, false};
+    ProcessControlBlock_t pcb3 = {4, 0, 6, false};
+    // create array  and load the blocks to it
+    dyn_array_t *ready_queue = dyn_array_create(3, sizeof(ProcessControlBlock_t), nullptr);
+    ASSERT_NE(ready_queue, nullptr);
+    dyn_array_push_back(ready_queue, &pcb1);
+    dyn_array_push_back(ready_queue, &pcb2);
+    dyn_array_push_back(ready_queue, &pcb3);
+    // create result
+    ScheduleResult_t result = {0.0f, 0.0f, 0UL};
+    bool success = shortest_job_first(ready_queue, &result);
+    //make sre rus corrreect with correct total run time
+    EXPECT_EQ(success, true);
+    EXPECT_EQ((int)result.total_run_time, 15);
+    // increase score
+    score += 25;
+    // clean up
+    dyn_array_destroy(ready_queue);
+}
+
+TEST(PriorityScheduling, NullReadyQueue) {
+    // create null quue
+    dyn_array_t *ready_queue = nullptr;
+    // create empty result
+    ScheduleResult_t result = {0.0f, 0.0f, 0UL};
+    // check to see if null queue fails
+    bool success = priority(ready_queue, &result);
+    EXPECT_EQ(success, false);
+    // Award 5 points
+    score += 5; 
+}
+
+
+TEST(PriorityScheduling, NullResult) {
+    // create empty array
+    dyn_array_t *ready_queue = dyn_array_create(0, sizeof(ProcessControlBlock_t), nullptr);
+    ASSERT_NE(ready_queue, nullptr);
+    // give a null result
+    bool success = priority(ready_queue, nullptr);
+    EXPECT_EQ(success, false);
+     // Award 5 points
+    score += 5;
+    //clean up
+    dyn_array_destroy(ready_queue);
+}
+
+
+TEST(PriorityScheduling, EmptyReadyQueue) {
+    // cereate queue
+    dyn_array_t *ready_queue = dyn_array_create(0, sizeof(ProcessControlBlock_t), nullptr);
+    ASSERT_NE(ready_queue, nullptr);
+    // create result
+    ScheduleResult_t result = {0.0f, 0.0f, 0UL};
+    // check empty
+    bool success = priority(ready_queue, &result);
+    // check all vaules
+    EXPECT_EQ(success, true);
+    EXPECT_EQ((int)result.average_turnaround_time, 0);
+    EXPECT_EQ((int)result.average_waiting_time, 0);
+    EXPECT_EQ((int)result.total_run_time, 0);
+    // Award 10 points
+    score += 10; 
+    //clean up
+    dyn_array_destroy(ready_queue);
+}
+
+
+TEST(PriorityScheduling, SingleProcess) {
+    //create single process
+    ProcessControlBlock_t pcb = {10, 1, 0, false}; 
+    // ready queue and enque single process
+    dyn_array_t *ready_queue = dyn_array_create(1, sizeof(ProcessControlBlock_t), nullptr);
+    ASSERT_NE(ready_queue, nullptr);
+    dyn_array_push_back(ready_queue, &pcb);
+    //create result and test single process
+    ScheduleResult_t result = {0.0f, 0.0f, 0UL};
+    bool success = priority(ready_queue, &result);
+    // check values
+    EXPECT_EQ(success, true);
+    EXPECT_EQ((int)result.average_turnaround_time, 10);
+    EXPECT_EQ((int)result.average_waiting_time, 0);
+    EXPECT_EQ((int)result.total_run_time, 10);
+    // Award 15 points
+    score += 15; 
+    // clean up
+    dyn_array_destroy(ready_queue);
+}
+
+
+TEST(PriorityScheduling, MultipleProcesses) {
+    // create multipkle processes
+    ProcessControlBlock_t pcb1 = {8, 3, 0, false}; // Priority 3, Arrival 0, Burst 8
+    ProcessControlBlock_t pcb2 = {4, 1, 1, false}; // Priority 1, Arrival 1, Burst 4
+    ProcessControlBlock_t pcb3 = {6, 2, 2, false}; // Priority 2, Arrival 2, Burst 6
+    // create queu and them to queue
+    dyn_array_t *ready_queue = dyn_array_create(3, sizeof(ProcessControlBlock_t), nullptr);
+    ASSERT_NE(ready_queue, nullptr);
+    dyn_array_push_back(ready_queue, &pcb1);
+    dyn_array_push_back(ready_queue, &pcb2);
+    dyn_array_push_back(ready_queue, &pcb3);
+    // create result
+    ScheduleResult_t result = {0.0f, 0.0f, 0UL};
+    // run algorithm
+    bool success = priority(ready_queue, &result);
+    // check result
+    EXPECT_EQ(success, true);
+    EXPECT_EQ((int)result.average_turnaround_time, 10);
+    EXPECT_EQ((int)result.average_waiting_time, 4);     
+    EXPECT_EQ((int)result.total_run_time, 19);          
+    // Award 20 points
+    score += 20; 
+    //clean up
+    dyn_array_destroy(ready_queue);
+}
+
+
+TEST(PriorityScheduling, SamePriorityDifferentArrival) {
+    // create processs
+    ProcessControlBlock_t pcb1 = {5, 2, 0, false}; // Priority 2, Arrival 0, Burst 5
+    ProcessControlBlock_t pcb2 = {3, 2, 1, false}; // Priority 2, Arrival 1, Burst 3
+    ProcessControlBlock_t pcb3 = {6, 2, 2, false}; // Priority 2, Arrival 2, Burst 6
+    // create queue and add them to queue
+    dyn_array_t *ready_queue = dyn_array_create(3, sizeof(ProcessControlBlock_t), nullptr);
+    ASSERT_NE(ready_queue, nullptr);
+    dyn_array_push_back(ready_queue, &pcb1);
+    dyn_array_push_back(ready_queue, &pcb2);
+    dyn_array_push_back(ready_queue, &pcb3);
+    // create reult and run algorithm
+    ScheduleResult_t result = {0.0f, 0.0f, 0UL};
+    bool success = priority(ready_queue, &result);
+    // check return values
+    EXPECT_EQ(success, true);
+    EXPECT_EQ((int)result.average_turnaround_time, 8); 
+    EXPECT_EQ((int)result.average_waiting_time, 3);     
+    EXPECT_EQ((int)result.total_run_time, 14);          
+    // Award 20 points
+    score += 20; 
+    // clean up
+    dyn_array_destroy(ready_queue);
+}
+
+
+TEST(PriorityScheduling, ProcessesOutOfOrderPriority) {
+    // create process
+    ProcessControlBlock_t pcb1 = {10, 4, 3, false}; // Priority 4, Arrival 3, Burst 10
+    ProcessControlBlock_t pcb2 = {5, 2, 2, false};  // Priority 2, Arrival 2, Burst 5
+    ProcessControlBlock_t pcb3 = {7, 1, 1, false};  // Priority 1, Arrival 1, Burst 7
+    ProcessControlBlock_t pcb4 = {8, 3, 0, false};  // Priority 3, Arrival 0, Burst 8
+    // create queue and load processes into queue
+    dyn_array_t *ready_queue = dyn_array_create(4, sizeof(ProcessControlBlock_t), nullptr);
+    ASSERT_NE(ready_queue, nullptr);
+    dyn_array_push_back(ready_queue, &pcb4);
+    dyn_array_push_back(ready_queue, &pcb2);
+    dyn_array_push_back(ready_queue, &pcb3);
+    dyn_array_push_back(ready_queue, &pcb1);
+    // create result and run algorithm
+    ScheduleResult_t result = {0.0f, 0.0f, 0UL};
+    bool success = priority(ready_queue, &result);
+    // check reults
+    EXPECT_EQ(success, true);
+    EXPECT_EQ((int)result.average_turnaround_time, 16); 
+    EXPECT_EQ((int)result.average_waiting_time, 9);   
+    EXPECT_EQ((int)result.total_run_time, 31);          
+    // Award 25 points
+    score += 25; 
+    // clean up
+    dyn_array_destroy(ready_queue);
+}
+
 class GradeEnvironment : public testing::Environment
 {
     public:
         virtual void SetUp()
         {
             score = 0;
-            total = 210;
+            total = 315;
         }
 
         virtual void TearDown()
