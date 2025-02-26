@@ -9,6 +9,13 @@
 
 
 #define UNUSED(x) (void)(x)
+int priority_compare(const void *a, const void *b) {
+    ProcessControlBlock_t *pcb1 = (ProcessControlBlock_t *)a;
+    ProcessControlBlock_t *pcb2 = (ProcessControlBlock_t *)b;
+    // if priority 1 is not equal to priority 2 then the return 1 - 2 otherwise return arrival1 - arrival2
+    return (pcb1->priority != pcb2->priority) ? pcb1->priority - pcb2->priority : pcb1->arrival - pcb2->arrival; // If equal priority, earlier arrival goes first
+}
+
 // comaprison funcion to compare burst times times using the dynamic array sort funtion
 // \param a is the first value
 // \param b is the second value
@@ -16,7 +23,7 @@
 int sjf_compare(const void *a, const void *b) {
     const ProcessControlBlock_t *pcb1 = (const ProcessControlBlock_t *)a;
     const ProcessControlBlock_t *pcb2 = (const ProcessControlBlock_t *)b;
-
+    // if burst 1 is not equal to burst 2 return burst 1 - 2 otherwise return arrival 1 minus ariaval 2
     return (pcb1->remaining_burst_time != pcb2->remaining_burst_time) ? (pcb1->remaining_burst_time - pcb2->remaining_burst_time) : (pcb1->arrival - pcb2->arrival);
 }
 // comaprison funcion to compare arrival times using the dynamic array sort funtion
@@ -26,6 +33,7 @@ int sjf_compare(const void *a, const void *b) {
 int arrival_time_compare(const void *a, const void *b) {
     const ProcessControlBlock_t *pcb1 = (const ProcessControlBlock_t *)a;
     const ProcessControlBlock_t *pcb2 = (const ProcessControlBlock_t *)b;
+    // if arival 1 is less than arrival 2 return -1 otherwise rethen arrival 1 is greater tahn 2
     return (pcb1->arrival < pcb2->arrival) ? -1 : (pcb1->arrival > pcb2->arrival);
 }
 // You might find this handy.  I put it around unused parameters, but you should
@@ -129,10 +137,10 @@ bool first_come_first_serve(dyn_array_t *ready_queue, ScheduleResult_t *result) 
 }
 
 ///*
-    // Runs the Shortest Job First Scheduling algorithm over the incoming ready_queue
-	// \param ready queue a dyn_array of type ProcessControlBlock_t that contain be up to N elements
-	// \param result used for shortest job first stat tracking \ref ScheduleResult_t
-	// \return true if function ran successful else false for an error
+// Runs the Shortest Job First Scheduling algorithm over the incoming ready_queue
+// \param ready queue a dyn_array of type ProcessControlBlock_t that contain be up to N elements
+// \param result used for shortest job first stat tracking \ref ScheduleResult_t
+// \return true if function ran successful else false for an error
 bool shortest_job_first(dyn_array_t *ready_queue, ScheduleResult_t *result) 
 {
 	
@@ -220,13 +228,73 @@ bool shortest_job_first(dyn_array_t *ready_queue, ScheduleResult_t *result)
     
 }
 //*/
+///*
+// Runs the Priority algorithm over the incoming ready_queue
+// \param ready queue a dyn_array of type ProcessControlBlock_t that contain be up to N elements
+// \param result used for shortest job first stat tracking \ref ScheduleResult_t
+// \return true if function ran successful else false for an error
 bool priority(dyn_array_t *ready_queue, ScheduleResult_t *result) 
 {
-	UNUSED(ready_queue);
-	UNUSED(result);
-	return false;
-}
+	// Validate input parameters
+    if (!ready_queue || !result) {
+        fprintf(stderr, "Error: NULL ready_queue or result\n");
+        return false;
+    }
 
+    size_t n = dyn_array_size(ready_queue);
+    if (n == 0) {
+        // If no processes, set results to zero
+        result->average_waiting_time = 0.0f;
+        result->average_turnaround_time = 0.0f;
+        result->total_run_time = 0UL;
+        return true;
+    }
+
+    // Sort the ready queue by priority (ascending) and arrival time (ascending)
+    if (!dyn_array_sort(ready_queue, priority_compare)) {
+        fprintf(stderr, "Error: Failed to sort ready queue\n");
+        return false;
+    }
+
+    unsigned long total_wait_time = 0;
+    unsigned long total_turnaround_time = 0;
+    unsigned long total_run_time = 0;
+    uint32_t current_time = 0;
+
+    // Iterate through sorted queue
+    for (size_t i = 0; i < n; ++i) {
+        ProcessControlBlock_t *pcb = (ProcessControlBlock_t *)dyn_array_at(ready_queue, i);
+        if (!pcb) {
+            fprintf(stderr, "Error: NULL PCB encountered\n");
+            return false;
+        }
+
+        // If CPU is idle, move to arrival time
+        if (current_time < pcb->arrival) {
+            current_time = pcb->arrival;
+        }
+
+        // Compute wait time and turnaround time
+        uint32_t wait_time = current_time - pcb->arrival;
+        uint32_t turnaround_time = wait_time + pcb->remaining_burst_time;
+
+        // Update statistics
+        total_wait_time += wait_time;
+        total_turnaround_time += turnaround_time;
+        total_run_time = current_time + pcb->remaining_burst_time;
+
+        // Move current time forward
+        current_time += pcb->remaining_burst_time;
+    }
+
+    // Compute averages
+    result->average_waiting_time = (float)total_wait_time / n;
+    result->average_turnaround_time = (float)total_turnaround_time / n;
+    result->total_run_time = total_run_time;
+
+    return true;
+}
+//*/
 bool round_robin(dyn_array_t *ready_queue, ScheduleResult_t *result, size_t quantum) 
 {
 	UNUSED(ready_queue);
