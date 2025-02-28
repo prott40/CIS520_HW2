@@ -11,17 +11,17 @@ extern "C"
 }
 
 #define NUM_PCB 30
-#define QUANTUM 5 // Used for Robin Round for process as the run time limit
 
 unsigned int score;
 unsigned int total;
 
 // check if load process doesn't have existing file
-TEST(LoadProcessControlBlocks, FileDoesNotExist) {
+TEST(LoadProcessControlBlocks, FileDoesNotExist)
+{
     const char *filename = "nonexistent_file.bin";
     dyn_array_t *result = load_process_control_blocks(filename);
     EXPECT_EQ(result, nullptr);
-    if (result == nullptr) 
+    if (result == nullptr)
     {
         score += 5;
     } // Award 5 points for this test case
@@ -29,13 +29,14 @@ TEST(LoadProcessControlBlocks, FileDoesNotExist) {
 // tests for preston's laod pcb
 ///*
 // if file is incomplete
-TEST(LoadProcessControlBlocks, CorruptedOrIncompleteFile) {
+TEST(LoadProcessControlBlocks, CorruptedOrIncompleteFile)
+{
     const char *filename = "incomplete_file.bin";
     FILE *file = fopen(filename, "wb");
     ASSERT_NE(file, nullptr);
 
-    //uint32_t pcb_count = 2; // Pretend the file will have 2 PCBs
-    //fwrite(&pcb_count, sizeof(uint32_t), 1, file);
+    // uint32_t pcb_count = 2; // Pretend the file will have 2 PCBs
+    // fwrite(&pcb_count, sizeof(uint32_t), 1, file);
     uint32_t burst_time = 5; // Write only one field (incomplete data)
     fwrite(&burst_time, sizeof(uint32_t), 1, file);
 
@@ -43,15 +44,16 @@ TEST(LoadProcessControlBlocks, CorruptedOrIncompleteFile) {
 
     dyn_array_t *result = load_process_control_blocks(filename);
     EXPECT_EQ(result, nullptr);
-    if (result == nullptr) 
+    if (result == nullptr)
     {
         score += 10;
-    }// Award 10 points for this test case
+    } // Award 10 points for this test case
 
     remove(filename);
 }
 // if file is correct
-TEST(LoadProcessControlBlocks, ValidFile_imitate_binary) {
+TEST(LoadProcessControlBlocks, ValidFile_imitate_binary)
+{
     const char *filename = "valid_file.bin";
     FILE *file = fopen(filename, "wb");
     ASSERT_NE(file, nullptr); // Ensure the file opens correctly
@@ -76,16 +78,16 @@ TEST(LoadProcessControlBlocks, ValidFile_imitate_binary) {
 
     // Call the function to load the PCBs
     dyn_array_t *result = load_process_control_blocks(filename);
-    ASSERT_NE(result, nullptr); // Ensure the function returns a valid dyn_array_t
+    ASSERT_NE(result, nullptr);                   // Ensure the function returns a valid dyn_array_t
     ASSERT_EQ(dyn_array_size(result), pcb_count); // Ensure the array size matches the PCB count
 
     // Validate the first PCB
     ProcessControlBlock_t *pc = (ProcessControlBlock_t *)dyn_array_at(result, 0);
-    ASSERT_NE(pc, nullptr); // Ensure the pointer is valid
+    ASSERT_NE(pc, nullptr);                                      // Ensure the pointer is valid
     EXPECT_EQ((int)pc->remaining_burst_time, (int)burst_time_1); // Validate burst time
     EXPECT_EQ((int)pc->priority, (int)priority_1);               // Validate priority
     EXPECT_EQ((int)pc->arrival, (int)arrival_1);                 // Validate arrival time
-    EXPECT_EQ(pc->started, false);                              // Validate default initialization
+    EXPECT_EQ(pc->started, false);                               // Validate default initialization
 
     // Validate the second PCB
     pc = (ProcessControlBlock_t *)dyn_array_at(result, 1);
@@ -96,14 +98,15 @@ TEST(LoadProcessControlBlocks, ValidFile_imitate_binary) {
     EXPECT_EQ(pc->started, false);
 
     // Assign score for passing this test case
-    score += 20; 
+    score += 20;
 
     // Clean up
     dyn_array_destroy(result);
     remove(filename);
 }
 
-TEST(LoadProcessControlBlocksTest, ValidFile_ReadActual) {
+TEST(LoadProcessControlBlocksTest, ValidFile_ReadActual)
+{
     const char *test_file = "../pcb.bin"; // Path to the actual binary file
 
     // Load the process control blocks from the binary file
@@ -118,7 +121,8 @@ TEST(LoadProcessControlBlocksTest, ValidFile_ReadActual) {
     EXPECT_GT((int)pcb_count, 0);
 
     // Dynamically inspect the loaded PCBs
-    for (size_t i = 0; i < pcb_count; ++i) {
+    for (size_t i = 0; i < pcb_count; ++i)
+    {
         ProcessControlBlock_t *loaded_pcb = (ProcessControlBlock_t *)dyn_array_at(pcb_array, i);
         ASSERT_NE(loaded_pcb, nullptr);
 
@@ -128,71 +132,17 @@ TEST(LoadProcessControlBlocksTest, ValidFile_ReadActual) {
 
         // Example assertion (update based on expected properties of the binary file)
         EXPECT_GE((int)loaded_pcb->remaining_burst_time, 0); // Burst time should be non-negative
-        EXPECT_GE((int)loaded_pcb->priority, 0);            // Priority should be non-negative
+        EXPECT_GE((int)loaded_pcb->priority, 0);             // Priority should be non-negative
     }
     score += 20;
     // Clean up
     dyn_array_destroy(pcb_array);
-   
 }
 
-//*/
-// tests for chris's load pcb
-/*
-TEST(LoadProcessControlBlocks, CorruptedOrIncompleteFile) {
-    const char *filename = "corrupted_file.bin";
-
-    // Case 1: File is too small to contain even the pcb_count
-    FILE *file = fopen(filename, "wb");
-    ASSERT_NE(file, nullptr);
-    uint8_t small_data = 0xFF; // Just 1 byte, not enough for pcb_count
-    fwrite(&small_data, sizeof(uint8_t), 1, file);
-    fclose(file);
-
-    dyn_array_t *result = load_process_control_blocks(filename);
-    EXPECT_EQ(result, nullptr); // Should return nullptr for invalid file
-    remove(filename);
-
-    // Case 4: File is completely empty
-    file = fopen(filename, "wb");
-    ASSERT_NE(file, nullptr);
-    fclose(file);
-
-    result = load_process_control_blocks(filename);
-    EXPECT_EQ(result, nullptr); // Should return nullptr for empty file
-    remove(filename);
-}
-
-TEST(LoadProcessControlBlocksTest, ValidFileRead)
-{
-    const char *test_file = "../pcb.bin"; // Use the existing pcb.bin file
-
-    // Load the process control blocks
-    dyn_array_t *pcb_array = load_process_control_blocks(test_file);
-    ASSERT_NE(pcb_array, nullptr);
-
-    // Check the size of the loaded array (Assuming there are 3 entries in the file)
-    EXPECT_EQ((int)dyn_array_size(pcb_array), 3);
-
-    // Check the values of the loaded ProcessControlBlock_t structures
-    ProcessControlBlock_t *loaded_pcb = (ProcessControlBlock_t *)dyn_array_at(pcb_array, 0);
-    EXPECT_EQ((int)loaded_pcb->remaining_burst_time, 4);
-    EXPECT_EQ((int)loaded_pcb->priority, 15);
-
-    loaded_pcb = (ProcessControlBlock_t *)dyn_array_at(pcb_array, 1);
-    EXPECT_EQ((int)loaded_pcb->remaining_burst_time, 10);
-    EXPECT_EQ((int)loaded_pcb->priority, 0);
-
-    loaded_pcb = (ProcessControlBlock_t *)dyn_array_at(pcb_array, 2);
-    EXPECT_EQ((int)loaded_pcb->remaining_burst_time, 0);
-    EXPECT_EQ((int)loaded_pcb->priority, 2);
-    // Clean up
-    dyn_array_destroy(pcb_array);
-}
-//*/
 // Test cases for first_come_first_serve
 // check null queue
-TEST(FirstComeFirstServe, NullReadyQueue) {
+TEST(FirstComeFirstServe, NullReadyQueue)
+{
     dyn_array_t *ready_queue = nullptr;
     ScheduleResult_t result = {0.0f, 0.0f, 0UL};
     bool success = first_come_first_serve(ready_queue, &result);
@@ -201,7 +151,8 @@ TEST(FirstComeFirstServe, NullReadyQueue) {
 }
 
 // check null result
-TEST(FirstComeFirstServe, NullResult) {
+TEST(FirstComeFirstServe, NullResult)
+{
     dyn_array_t *ready_queue = dyn_array_create(0, sizeof(ProcessControlBlock_t), nullptr);
     ASSERT_NE(ready_queue, nullptr);
 
@@ -213,7 +164,8 @@ TEST(FirstComeFirstServe, NullResult) {
 }
 
 // check empty queue
-TEST(FirstComeFirstServe, EmptyReadyQueue) {
+TEST(FirstComeFirstServe, EmptyReadyQueue)
+{
     dyn_array_t *ready_queue = dyn_array_create(0, sizeof(ProcessControlBlock_t), nullptr);
     ASSERT_NE(ready_queue, nullptr);
 
@@ -229,7 +181,8 @@ TEST(FirstComeFirstServe, EmptyReadyQueue) {
 }
 
 // check single process
-TEST(FirstComeFirstServe, SingleProcess) {
+TEST(FirstComeFirstServe, SingleProcess)
+{
     ProcessControlBlock_t pcb = {10, 1, 0, false}; // Remaining burst time: 10, priority: 1, arrival: 0
     dyn_array_t *ready_queue = dyn_array_create(1, sizeof(ProcessControlBlock_t), nullptr);
     ASSERT_NE(ready_queue, nullptr);
@@ -248,11 +201,12 @@ TEST(FirstComeFirstServe, SingleProcess) {
 
 // check multiple processes
 // check multiple processes (using three processes as expected)
-TEST(FirstComeFirstServe, MultipleProcesses) {
+TEST(FirstComeFirstServe, MultipleProcesses)
+{
     // Use three processes
-    ProcessControlBlock_t pcb1 = {10, 0, 0, false};  // Arrival: 0, Burst: 10
-    ProcessControlBlock_t pcb2 = {5, 0, 1, false};   // Arrival: 1, Burst: 5
-    ProcessControlBlock_t pcb3 = {8, 0, 2, false};   // Arrival: 2, Burst: 8
+    ProcessControlBlock_t pcb1 = {10, 0, 0, false}; // Arrival: 0, Burst: 10
+    ProcessControlBlock_t pcb2 = {5, 0, 1, false};  // Arrival: 1, Burst: 5
+    ProcessControlBlock_t pcb3 = {8, 0, 2, false};  // Arrival: 2, Burst: 8
 
     dyn_array_t *ready_queue = dyn_array_create(3, sizeof(ProcessControlBlock_t), nullptr);
     ASSERT_NE(ready_queue, nullptr);
@@ -266,28 +220,28 @@ TEST(FirstComeFirstServe, MultipleProcesses) {
     EXPECT_EQ((int)result.average_turnaround_time, 15); // (10 + 14 + 21) / 3 = 15
     EXPECT_EQ((int)result.average_waiting_time, 7);     // (0 + 9 + 13) / 3 ≈ 7 (if truncated)
     EXPECT_EQ((int)result.total_run_time, 23);          // Last process finishes at time 23
-    score += 20; // Award 20 points for this test case
+    score += 20;                                        // Award 20 points for this test case
 
     dyn_array_destroy(ready_queue);
 }
 
-
-TEST(FirstComeFirstServe, ProcessesOutOfOrderArrival) {
+TEST(FirstComeFirstServe, ProcessesOutOfOrderArrival)
+{
     // Define processes out of order
-    ProcessControlBlock_t pcb1 = {15, 0, 3, false};  // Arrival: 3, Burst: 15
-    ProcessControlBlock_t pcb2 = {10, 0, 2, false};  // Arrival: 2, Burst: 10
-    ProcessControlBlock_t pcb3 = {5, 0, 1, false};   // Arrival: 1, Burst: 5
-    ProcessControlBlock_t pcb4 = {15, 0, 0, false};  // Arrival: 0, Burst: 15
+    ProcessControlBlock_t pcb1 = {15, 0, 3, false}; // Arrival: 3, Burst: 15
+    ProcessControlBlock_t pcb2 = {10, 0, 2, false}; // Arrival: 2, Burst: 10
+    ProcessControlBlock_t pcb3 = {5, 0, 1, false};  // Arrival: 1, Burst: 5
+    ProcessControlBlock_t pcb4 = {15, 0, 0, false}; // Arrival: 0, Burst: 15
 
     // Create the dynamic array
     dyn_array_t *ready_queue = dyn_array_create(4, sizeof(ProcessControlBlock_t), nullptr);
     ASSERT_NE(ready_queue, nullptr);
 
     // Add processes to the ready queue (out of order)
-    dyn_array_push_back(ready_queue, &pcb4);  // Arrival: 0
-    dyn_array_push_back(ready_queue, &pcb2);  // Arrival: 2
-    dyn_array_push_back(ready_queue, &pcb3);  // Arrival: 1
-    dyn_array_push_back(ready_queue, &pcb1);  // Arrival: 3
+    dyn_array_push_back(ready_queue, &pcb4); // Arrival: 0
+    dyn_array_push_back(ready_queue, &pcb2); // Arrival: 2
+    dyn_array_push_back(ready_queue, &pcb3); // Arrival: 1
+    dyn_array_push_back(ready_queue, &pcb1); // Arrival: 3
 
     // Initialize result
     ScheduleResult_t result = {0.0f, 0.0f, 0UL};
@@ -308,7 +262,8 @@ TEST(FirstComeFirstServe, ProcessesOutOfOrderArrival) {
     dyn_array_destroy(ready_queue);
 }
 
-TEST(ShortestJobFirst, NullReadyQueue) {
+TEST(ShortestJobFirst, NullReadyQueue)
+{
     // create array and result empty
     dyn_array_t *ready_queue = nullptr;
     ScheduleResult_t result = {0.0f, 0.0f, 0UL};
@@ -319,7 +274,8 @@ TEST(ShortestJobFirst, NullReadyQueue) {
     score += 5;
 }
 
-TEST(ShortestJobFirst, NullResult) {
+TEST(ShortestJobFirst, NullResult)
+{
     // creates array and make sure it empty
     dyn_array_t *ready_queue = dyn_array_create(0, sizeof(ProcessControlBlock_t), nullptr);
     ASSERT_NE(ready_queue, nullptr);
@@ -332,7 +288,8 @@ TEST(ShortestJobFirst, NullResult) {
     dyn_array_destroy(ready_queue);
 }
 
-TEST(ShortestJobFirst, EmptyReadyQueue) {
+TEST(ShortestJobFirst, EmptyReadyQueue)
+{
     // create empty queue
     dyn_array_t *ready_queue = dyn_array_create(0, sizeof(ProcessControlBlock_t), nullptr);
     ASSERT_NE(ready_queue, nullptr);
@@ -351,7 +308,8 @@ TEST(ShortestJobFirst, EmptyReadyQueue) {
     dyn_array_destroy(ready_queue);
 }
 
-TEST(ShortestJobFirst, SingleProcess) {
+TEST(ShortestJobFirst, SingleProcess)
+{
     // give a single process
     ProcessControlBlock_t pcb = {5, 1, 0, false};
     dyn_array_t *ready_queue = dyn_array_create(1, sizeof(ProcessControlBlock_t), nullptr);
@@ -373,7 +331,8 @@ TEST(ShortestJobFirst, SingleProcess) {
     dyn_array_destroy(ready_queue);
 }
 
-TEST(ShortestJobFirst, MultipleProcesses) {
+TEST(ShortestJobFirst, MultipleProcesses)
+{
     // create muliple processs
     ProcessControlBlock_t pcb1 = {8, 0, 0, false};
     ProcessControlBlock_t pcb2 = {4, 0, 1, false};
@@ -398,8 +357,9 @@ TEST(ShortestJobFirst, MultipleProcesses) {
     dyn_array_destroy(ready_queue);
 }
 
-TEST(ShortestJobFirst, DifferentArrivalTimes) {
-    //create pcb blocks
+TEST(ShortestJobFirst, DifferentArrivalTimes)
+{
+    // create pcb blocks
     ProcessControlBlock_t pcb1 = {5, 0, 0, false};
     ProcessControlBlock_t pcb2 = {2, 0, 3, false};
     ProcessControlBlock_t pcb3 = {4, 0, 6, false};
@@ -412,7 +372,7 @@ TEST(ShortestJobFirst, DifferentArrivalTimes) {
     // create result
     ScheduleResult_t result = {0.0f, 0.0f, 0UL};
     bool success = shortest_job_first(ready_queue, &result);
-    //make sre rus corrreect with correct total run time
+    // make sre rus corrreect with correct total run time
     EXPECT_EQ(success, true);
     EXPECT_EQ((int)result.total_run_time, 15);
     // increase score
@@ -421,7 +381,8 @@ TEST(ShortestJobFirst, DifferentArrivalTimes) {
     dyn_array_destroy(ready_queue);
 }
 
-TEST(PriorityScheduling, NullReadyQueue) {
+TEST(PriorityScheduling, NullReadyQueue)
+{
     // create null quue
     dyn_array_t *ready_queue = nullptr;
     // create empty result
@@ -430,25 +391,25 @@ TEST(PriorityScheduling, NullReadyQueue) {
     bool success = priority(ready_queue, &result);
     EXPECT_EQ(success, false);
     // Award 5 points
-    score += 5; 
+    score += 5;
 }
 
-
-TEST(PriorityScheduling, NullResult) {
+TEST(PriorityScheduling, NullResult)
+{
     // create empty array
     dyn_array_t *ready_queue = dyn_array_create(0, sizeof(ProcessControlBlock_t), nullptr);
     ASSERT_NE(ready_queue, nullptr);
     // give a null result
     bool success = priority(ready_queue, nullptr);
     EXPECT_EQ(success, false);
-     // Award 5 points
+    // Award 5 points
     score += 5;
-    //clean up
+    // clean up
     dyn_array_destroy(ready_queue);
 }
 
-
-TEST(PriorityScheduling, EmptyReadyQueue) {
+TEST(PriorityScheduling, EmptyReadyQueue)
+{
     // cereate queue
     dyn_array_t *ready_queue = dyn_array_create(0, sizeof(ProcessControlBlock_t), nullptr);
     ASSERT_NE(ready_queue, nullptr);
@@ -462,20 +423,20 @@ TEST(PriorityScheduling, EmptyReadyQueue) {
     EXPECT_EQ((int)result.average_waiting_time, 0);
     EXPECT_EQ((int)result.total_run_time, 0);
     // Award 10 points
-    score += 10; 
-    //clean up
+    score += 10;
+    // clean up
     dyn_array_destroy(ready_queue);
 }
 
-
-TEST(PriorityScheduling, SingleProcess) {
-    //create single process
-    ProcessControlBlock_t pcb = {10, 1, 0, false}; 
+TEST(PriorityScheduling, SingleProcess)
+{
+    // create single process
+    ProcessControlBlock_t pcb = {10, 1, 0, false};
     // ready queue and enque single process
     dyn_array_t *ready_queue = dyn_array_create(1, sizeof(ProcessControlBlock_t), nullptr);
     ASSERT_NE(ready_queue, nullptr);
     dyn_array_push_back(ready_queue, &pcb);
-    //create result and test single process
+    // create result and test single process
     ScheduleResult_t result = {0.0f, 0.0f, 0UL};
     bool success = priority(ready_queue, &result);
     // check values
@@ -484,13 +445,13 @@ TEST(PriorityScheduling, SingleProcess) {
     EXPECT_EQ((int)result.average_waiting_time, 0);
     EXPECT_EQ((int)result.total_run_time, 10);
     // Award 15 points
-    score += 15; 
+    score += 15;
     // clean up
     dyn_array_destroy(ready_queue);
 }
 
-
-TEST(PriorityScheduling, MultipleProcesses) {
+TEST(PriorityScheduling, MultipleProcesses)
+{
     // create multipkle processes
     ProcessControlBlock_t pcb1 = {8, 3, 0, false}; // Priority 3, Arrival 0, Burst 8
     ProcessControlBlock_t pcb2 = {4, 1, 1, false}; // Priority 1, Arrival 1, Burst 4
@@ -508,16 +469,16 @@ TEST(PriorityScheduling, MultipleProcesses) {
     // check result
     EXPECT_EQ(success, true);
     EXPECT_EQ((int)result.average_turnaround_time, 10);
-    EXPECT_EQ((int)result.average_waiting_time, 4);     
-    EXPECT_EQ((int)result.total_run_time, 19);          
+    EXPECT_EQ((int)result.average_waiting_time, 4);
+    EXPECT_EQ((int)result.total_run_time, 19);
     // Award 20 points
-    score += 20; 
-    //clean up
+    score += 20;
+    // clean up
     dyn_array_destroy(ready_queue);
 }
 
-
-TEST(PriorityScheduling, SamePriorityDifferentArrival) {
+TEST(PriorityScheduling, SamePriorityDifferentArrival)
+{
     // create processs
     ProcessControlBlock_t pcb1 = {5, 2, 0, false}; // Priority 2, Arrival 0, Burst 5
     ProcessControlBlock_t pcb2 = {3, 2, 1, false}; // Priority 2, Arrival 1, Burst 3
@@ -533,17 +494,17 @@ TEST(PriorityScheduling, SamePriorityDifferentArrival) {
     bool success = priority(ready_queue, &result);
     // check return values
     EXPECT_EQ(success, true);
-    EXPECT_EQ((int)result.average_turnaround_time, 8); 
-    EXPECT_EQ((int)result.average_waiting_time, 3);     
-    EXPECT_EQ((int)result.total_run_time, 14);          
+    EXPECT_EQ((int)result.average_turnaround_time, 8);
+    EXPECT_EQ((int)result.average_waiting_time, 3);
+    EXPECT_EQ((int)result.total_run_time, 14);
     // Award 20 points
-    score += 20; 
+    score += 20;
     // clean up
     dyn_array_destroy(ready_queue);
 }
 
-
-TEST(PriorityScheduling, ProcessesOutOfOrderPriority) {
+TEST(PriorityScheduling, ProcessesOutOfOrderPriority)
+{
     // create process
     ProcessControlBlock_t pcb1 = {10, 4, 3, false}; // Priority 4, Arrival 3, Burst 10
     ProcessControlBlock_t pcb2 = {5, 2, 2, false};  // Priority 2, Arrival 2, Burst 5
@@ -561,36 +522,79 @@ TEST(PriorityScheduling, ProcessesOutOfOrderPriority) {
     bool success = priority(ready_queue, &result);
     // check reults
     EXPECT_EQ(success, true);
-    EXPECT_EQ((int)result.average_turnaround_time, 16); 
-    EXPECT_EQ((int)result.average_waiting_time, 9);   
-    EXPECT_EQ((int)result.total_run_time, 31);          
+    EXPECT_EQ((int)result.average_turnaround_time, 16);
+    EXPECT_EQ((int)result.average_waiting_time, 9);
+    EXPECT_EQ((int)result.total_run_time, 31);
     // Award 25 points
-    score += 25; 
+    score += 25;
     // clean up
     dyn_array_destroy(ready_queue);
 }
 
+// test cases for round robin
+TEST(RoundRobinTest, MultipleProcessesLargeQuant)
+{
+    dyn_array_t *queue = dyn_array_create(3, sizeof(ProcessControlBlock_t), NULL);
+
+    ProcessControlBlock_t p1 = {3, 3, 0, false}; // Process 1: Burst 3
+    ProcessControlBlock_t p2 = {3, 3, 0, false}; // Process 2: Burst 3
+    ProcessControlBlock_t p3 = {3, 3, 0, false}; // Process 3: Burst 3
+
+    dyn_array_push_back(queue, &p1);
+    dyn_array_push_back(queue, &p2);
+    dyn_array_push_back(queue, &p3);
+
+    ScheduleResult_t result;
+    ASSERT_TRUE(round_robin(queue, &result, 3)); // Quantum = 3
+    ASSERT_EQ(result.average_waiting_time, 3);
+    ASSERT_EQ(result.average_turnaround_time, 6);
+    ASSERT_EQ(result.total_run_time, 18);
+
+    dyn_array_destroy(queue);
+}
+
+TEST(RoundRobinTest, MultipleProcessesSmallQuant)
+{
+    dyn_array_t *queue = dyn_array_create(3, sizeof(ProcessControlBlock_t), NULL);
+
+    ProcessControlBlock_t p1 = {3, 3, 0, false}; // Process 1: Burst 3
+    ProcessControlBlock_t p2 = {3, 3, 0, false}; // Process 2: Burst 3
+    ProcessControlBlock_t p3 = {3, 3, 0, false}; // Process 3: Burst 3
+
+    dyn_array_push_back(queue, &p1);
+    dyn_array_push_back(queue, &p2);
+    dyn_array_push_back(queue, &p3);
+
+    ScheduleResult_t result;
+    ASSERT_TRUE(round_robin(queue, &result, 2)); // Quantum = 3
+    ASSERT_EQ(result.average_waiting_time, 2);
+    ASSERT_EQ(result.average_turnaround_time, 8);
+    ASSERT_EQ(result.total_run_time, 24);
+
+    dyn_array_destroy(queue);
+}
+
 class GradeEnvironment : public testing::Environment
 {
-    public:
-        virtual void SetUp()
-        {
-            score = 0;
-            total = 315;
-        }
+public:
+    virtual void SetUp()
+    {
+        score = 0;
+        total = 315;
+    }
 
-        virtual void TearDown()
-        {
-            ::testing::Test::RecordProperty("points_given", score);
-            ::testing::Test::RecordProperty("points_total", total);
-            std::cout << "SCORE: " << score << '/' << total << std::endl;
-        }
+    virtual void TearDown()
+    {
+        ::testing::Test::RecordProperty("points_given", score);
+        ::testing::Test::RecordProperty("points_total", total);
+        std::cout << "SCORE: " << score << '/' << total << std::endl;
+    }
 };
 
 int main(int argc, char **argv)
 {
     ::testing::InitGoogleTest(&argc, argv);
     ::testing::AddGlobalTestEnvironment(new GradeEnvironment);
-    
+
     return RUN_ALL_TESTS();
 }

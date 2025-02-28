@@ -2,7 +2,8 @@
 #define PROCESS_SCHEDULING_H
 
 #ifdef __cplusplus
-	extern "C" {
+extern "C"
+{
 #endif
 
 #include <stdbool.h>
@@ -10,22 +11,20 @@
 
 #include "dyn_array.h"
 
-	typedef struct 
+	typedef struct
 	{
-		uint32_t remaining_burst_time;  // the remaining burst of the pcb
-		uint32_t priority;				// The priority of the task
-		uint32_t arrival;				// Time the process arrived in the ready queue
-		bool started;			  		// If it has been activated on virtual CPU
-	} 
-	ProcessControlBlock_t;				// you may or may not need to add more elements
+		uint32_t remaining_burst_time; // the remaining burst of the pcb
+		uint32_t priority;						 // The priority of the task
+		uint32_t arrival;							 // Time the process arrived in the ready queue
+		bool started;									 // If it has been activated on virtual CPU
+	} ProcessControlBlock_t;				 // you may or may not need to add more elements
 
-	typedef struct 
+	typedef struct
 	{
-		float average_waiting_time;	 // the average waiting time in the ready queue until first schedue on the cpu
-		float average_turnaround_time;  // the average completion time of the PCBs
-		unsigned long total_run_time;   // the total time to process all the PCBs in the ready queue
-	} 
-	ScheduleResult_t;
+		float average_waiting_time;		 // the average waiting time in the ready queue until first schedue on the cpu
+		float average_turnaround_time; // the average completion time of the PCBs
+		unsigned long total_run_time;	 // the total time to process all the PCBs in the ready queue
+	} ScheduleResult_t;
 	// comaprison for priority using the dynamic array sort function
 	// \param a is first value
 	// \param b is second value
@@ -36,7 +35,7 @@
 	// \param a is the first value
 	// \param b is the second value
 	// outline copied from https://www.gnu.org/software/libc/manual/html_node/Comparison-Functions.html
-	int sjf_compare(const void *a, const void *b) ;
+	int sjf_compare(const void *a, const void *b);
 
 	// comaprison funcion to compare arrival times using the dynamic array sort funtion
 	// \param a is the first value
