@@ -21,3 +21,8 @@ Average wait time: 16.00
 Average turnaround time: 28.50
 Total run time: 50
 ---------------------------------------
+---------2025-02-28 15:25:09 RR-----------
+Average wait time: 4.00
+Average turnaround time: 37.00
+Total run time: 148
+---------------------------------------

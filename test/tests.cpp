@@ -536,9 +536,9 @@ TEST(RoundRobinTest, MultipleProcessesLargeQuant)
 {
     dyn_array_t *queue = dyn_array_create(3, sizeof(ProcessControlBlock_t), NULL);
 
-    ProcessControlBlock_t p1 = {3, 3, 0, false}; // Process 1: Burst 3
-    ProcessControlBlock_t p2 = {3, 3, 0, false}; // Process 2: Burst 3
-    ProcessControlBlock_t p3 = {3, 3, 0, false}; // Process 3: Burst 3
+    ProcessControlBlock_t p1 = {3, 0, 0, false}; // Process 1: Burst 3
+    ProcessControlBlock_t p2 = {3, 0, 0, false}; // Process 2: Burst 3
+    ProcessControlBlock_t p3 = {3, 0, 0, false}; // Process 3: Burst 3
 
     dyn_array_push_back(queue, &p1);
     dyn_array_push_back(queue, &p2);
@@ -557,21 +557,80 @@ TEST(RoundRobinTest, MultipleProcessesSmallQuant)
 {
     dyn_array_t *queue = dyn_array_create(3, sizeof(ProcessControlBlock_t), NULL);
 
-    ProcessControlBlock_t p1 = {3, 3, 0, false}; // Process 1: Burst 3
-    ProcessControlBlock_t p2 = {3, 3, 0, false}; // Process 2: Burst 3
-    ProcessControlBlock_t p3 = {3, 3, 0, false}; // Process 3: Burst 3
+    ProcessControlBlock_t p1 = {3, 0, 0, false}; // Process 1: Burst 3
+    ProcessControlBlock_t p2 = {3, 0, 0, false}; // Process 2: Burst 3
+    ProcessControlBlock_t p3 = {3, 0, 0, false}; // Process 3: Burst 3
 
     dyn_array_push_back(queue, &p1);
     dyn_array_push_back(queue, &p2);
     dyn_array_push_back(queue, &p3);
 
     ScheduleResult_t result;
-    ASSERT_TRUE(round_robin(queue, &result, 2)); // Quantum = 3
-    ASSERT_EQ(result.average_waiting_time, 2);
+    ASSERT_TRUE(round_robin(queue, &result, 2)); // Quantum = 2
+    ASSERT_EQ(result.average_waiting_time, 5);
     ASSERT_EQ(result.average_turnaround_time, 8);
     ASSERT_EQ(result.total_run_time, 24);
 
     dyn_array_destroy(queue);
+}
+
+TEST(RoundRobinTest, QuantIsZero)
+{
+    dyn_array_t *queue = dyn_array_create(3, sizeof(ProcessControlBlock_t), NULL);
+
+    ProcessControlBlock_t p1 = {3, 0, 0, false}; // Process 1: Burst 3
+    ProcessControlBlock_t p2 = {3, 0, 0, false}; // Process 2: Burst 3
+    ProcessControlBlock_t p3 = {3, 0, 0, false}; // Process 3: Burst 3
+
+    dyn_array_push_back(queue, &p1);
+    dyn_array_push_back(queue, &p2);
+    dyn_array_push_back(queue, &p3);
+
+    ScheduleResult_t result;
+    ASSERT_FALSE(round_robin(queue, &result, 0));
+
+    dyn_array_destroy(queue);
+}
+
+TEST(RoundRobinTest, NullReadyQueue)
+{
+    // create null quue
+    dyn_array_t *ready_queue = nullptr;
+    // create empty result
+    ScheduleResult_t result = {0.0f, 0.0f, 0UL};
+    // check to see if null queue fails
+    bool success = round_robin(ready_queue, &result, 2);
+    EXPECT_EQ(success, false);
+    // Award 5 points
+    score += 5;
+}
+
+TEST(RoundRobinTest, NullResult)
+{
+    // create empty array
+    dyn_array_t *ready_queue = dyn_array_create(0, sizeof(ProcessControlBlock_t), nullptr);
+    ASSERT_NE(ready_queue, nullptr);
+    // give a null result
+    bool success = round_robin(ready_queue, nullptr, 1);
+    EXPECT_EQ(success, false);
+    // Award 5 points
+    score += 5;
+    // clean up
+    dyn_array_destroy(ready_queue);
+}
+
+TEST(RoundRobinTest, EmptyReadyQueue)
+{
+    // cereate queue
+    dyn_array_t *ready_queue = dyn_array_create(0, sizeof(ProcessControlBlock_t), nullptr);
+    ASSERT_NE(ready_queue, nullptr);
+    // create result
+    ScheduleResult_t result = {0.0f, 0.0f, 0UL};
+    // check empty
+    bool success = round_robin(ready_queue, &result, 1);
+    EXPECT_FALSE(success);
+    // clean up
+    dyn_array_destroy(ready_queue);
 }
 
 class GradeEnvironment : public testing::Environment

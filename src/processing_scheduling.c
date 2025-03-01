@@ -320,11 +320,11 @@ bool round_robin(dyn_array_t *ready_queue, ScheduleResult_t *result, size_t quan
         return false;
     }
 
-    unsigned long total_wait_time = 0;
+    unsigned long total_waiting_time = 0;
     unsigned long total_turnaround_time = 0;
+    unsigned long total_run_time = 0;
     unsigned long current_time = 0;
     size_t num_processes = dyn_array_size(ready_queue);
-    size_t seen_processes = 0; // Count how many processes have been scheduled
 
     while (dyn_array_size(ready_queue) > 0)
     {
@@ -334,38 +334,50 @@ bool round_robin(dyn_array_t *ready_queue, ScheduleResult_t *result, size_t quan
             return false; // Error: process is NULL
         }
 
-        // Calculate wait time for first appearance of each process
-        if (seen_processes < num_processes)
+        // If CPU is idle, move to the arrival time
+        if (current_time < current_process->arrival)
         {
-            total_wait_time += current_time;
-            seen_processes++;
+            current_time = current_process->arrival;
         }
+
+        // Calculate wait time: current time - arrival time
+        unsigned long wait_time = current_time - current_process->arrival;
 
         if (current_process->remaining_burst_time <= quantum) // complete the process
         {
             while (current_process->remaining_burst_time > 0)
             {
-                virtual_cpu(current_process);
-                current_time++;
+                current_process->started = true;
+                virtual_cpu(current_process); // Decrement the remaining burst time
+                current_time++;               // Increment the time for each execution cycle
             }
-            total_turnaround_time += current_time;
-            dyn_array_pop_front(ready_queue);
+            // After the process finishes, calculate turnaround time
+            unsigned long turnaround_time = current_time - current_process->arrival;
+            total_turnaround_time += turnaround_time;
+            total_waiting_time += wait_time;
+            total_run_time += turnaround_time; // Run time is typically the turnaround time
+            dyn_array_pop_front(ready_queue);  // Remove process from ready queue
         }
         else // run the process up to the quantum
         {
             for (size_t i = 0; i < quantum; i++)
             {
-                virtual_cpu(current_process);
-                current_time++;
+                current_process->started = true;
+                virtual_cpu(current_process); // Decrement the remaining burst time
+                current_time++;               // Increment the time for each execution cycle
+                total_waiting_time--;
             }
+            // Re-insert the process into the ready queue if not finished
             dyn_array_push_back(ready_queue, current_process);
             dyn_array_pop_front(ready_queue);
         }
     }
 
-    result->average_waiting_time = total_wait_time / num_processes;
+    // Store the results
+    result->average_waiting_time = total_waiting_time / num_processes;
     result->average_turnaround_time = total_turnaround_time / num_processes;
-    result->total_run_time = total_turnaround_time;
+    result->total_run_time = total_run_time;
+
     return true;
 }
 
