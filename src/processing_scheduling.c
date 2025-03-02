@@ -515,8 +515,26 @@ bool shortest_remaining_time_first(dyn_array_t *ready_queue, ScheduleResult_t *r
     //  b. re-sort the array
     //clear memory
 
-    while(){
+    //1.
+    // Sort the ready queue by burst time
+    if (!dyn_array_sort(ready_queue, sjf_compare))
+    {
+        fprintf(stderr, "Failed to sort ready queue\n");
+        return false;
+    }
 
+    while(dyn_array_size(ready_queue)>0){
+
+        //remove one from first PCB's burst time (using void function)
+        
+
+        //resort array
+        if (!dyn_array_sort(ready_queue, sjf_compare))
+        {
+            fprintf(stderr, "Failed to sort ready queue\n");
+            return false;
+        }
+        
 
     }
 }
