@@ -33,9 +33,13 @@ int main(int argc, char **argv)
     {
         alg = 2;
     }
-    else
+    else if (strncmp(argv[2], SJF, 1) == 0)
     {
         alg = 3;
+    }
+    else
+    {
+        alg = 4;
     }
     int quanta;
     // get time for read me
@@ -127,10 +131,25 @@ int main(int argc, char **argv)
             return EXIT_FAILURE;
         }
     }
-    else
+    else if (alg == 3)
     {
 
         if (shortest_job_first(binArray, Result))
+        {
+            fprintf(stderr, "%s:%d passed sjf \n", __FILE__, __LINE__);
+        }
+        else
+        {
+            fprintf(stderr, "%s:%d failed shortest job fisrt\n", __FILE__, __LINE__);
+            dyn_array_destroy(binArray);
+            free(Result);
+            return EXIT_FAILURE;
+        }
+    }
+    else
+    {
+
+        if (shortest_remaining_time_first(binArray, Result))
         {
             fprintf(stderr, "%s:%d passed sjf \n", __FILE__, __LINE__);
         }

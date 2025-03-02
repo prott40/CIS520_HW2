@@ -483,7 +483,40 @@ dyn_array_t *load_process_control_blocks(const char *input_file)
 
 bool shortest_remaining_time_first(dyn_array_t *ready_queue, ScheduleResult_t *result)
 {
-    UNUSED(ready_queue);
-    UNUSED(result);
-    return false;
+    /*
+	UNUSED(ready_queue);
+	UNUSED(result);
+	return false;
+    */
+
+    // Validate input parameters
+    if (!ready_queue || !result) {
+        fprintf(stderr, "Error: NULL ready_queue or result\n");
+        return false;
+    }
+
+    // get the size of the queue
+    size_t n = dyn_array_size(ready_queue);
+    // check for empty array
+    if (n == 0) {
+        // If the queue is empty, zero out the results
+        result->average_waiting_time = 0.0f;
+        result->average_turnaround_time = 0.0f;
+        result->total_run_time = 0UL;
+        return true;
+    }
+
+    //always run shortest remaining burst time
+    //use the void function to reduce void time
+
+    //1. sort the array
+    //2. while the array isn't empty:
+    //  a. remove a single number from the current burst time of the shortest pcb
+    //  b. re-sort the array
+    //clear memory
+
+    while(){
+
+
+    }
 }
