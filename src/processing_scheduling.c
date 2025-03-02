@@ -320,8 +320,14 @@ bool round_robin(dyn_array_t *ready_queue, ScheduleResult_t *result, size_t quan
         return false;
     }
 
-    unsigned long total_waiting_time = 0;
-    unsigned long total_turnaround_time = 0;
+    if (!dyn_array_sort(ready_queue, arrival_time_compare))
+    {
+        fprintf(stderr, "Error: Failed to sort ready queue\n");
+        return false;
+    }
+
+    float total_waiting_time = 0.0;
+    float total_turnaround_time = 0.0;
     unsigned long total_run_time = 0;
     unsigned long current_time = 0;
     size_t num_processes = dyn_array_size(ready_queue);

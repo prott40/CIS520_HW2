@@ -8,21 +8,51 @@ Milestone 2: Shortest Job First, Shortest Remaining Time First, Round Robin, and
 
 Note:
 You can manually copy the time analysis from console and paste it to this file, but directly output from your program is strongly recommended.
----------------------------------------------------------------------------
-Add your scheduling algorithm analysis below this line in a readable format.
----------------------------------------------------------------------------
----------2025-02-21 10:13:44-----------
+
+---
+
+## Add your scheduling algorithm analysis below this line in a readable format.
+
+---------2025-03-02 12:29:52 FCFS-----------
 Average wait time: 16.00
 Average turnaround time: 28.50
 Total run time: 50
----------------------------------------
----------2025-02-22 19:31:39-----------
+
+real 0m0.009s
+user 0m0.002s
+sys 0m0.000s
+
+---
+
+---------2025-03-02 12:30:37 P-----------
 Average wait time: 16.00
 Average turnaround time: 28.50
 Total run time: 50
----------------------------------------
----------2025-02-28 15:25:09 RR-----------
-Average wait time: 4.00
-Average turnaround time: 37.00
-Total run time: 148
----------------------------------------
+
+real 0m0.011s
+user 0m0.002s
+sys 0m0.000s
+
+---
+
+---------2025-03-02 12:31:08 RR-----------
+Average wait time: 24.00
+Average turnaround time: 36.50
+Total run time: 146
+
+real 0m0.012s
+user 0m0.002s
+sys 0m0.000s
+
+---
+
+---------2025-03-02 12:32:12 SJF-----------
+Average wait time: 13.00
+Average turnaround time: 25.50
+Total run time: 52
+
+real 0m0.013s
+user 0m0.000s
+sys 0m0.002s
+
+---

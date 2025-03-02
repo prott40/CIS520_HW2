@@ -262,6 +262,16 @@ TEST(FirstComeFirstServe, ProcessesOutOfOrderArrival)
     dyn_array_destroy(ready_queue);
 }
 
+TEST(FirstComeFirstServer, WithGivenPCBFile)
+{
+    dyn_array_t *queue = load_process_control_blocks("../pcb.bin");
+    ScheduleResult_t result;
+
+    ASSERT_TRUE(first_come_first_serve(queue, &result)); // Quantum = 2
+
+    dyn_array_destroy(queue);
+}
+
 TEST(ShortestJobFirst, NullReadyQueue)
 {
     // create array and result empty
@@ -379,6 +389,16 @@ TEST(ShortestJobFirst, DifferentArrivalTimes)
     score += 25;
     // clean up
     dyn_array_destroy(ready_queue);
+}
+
+TEST(ShortestJobFirst, WithGivenPCBFile)
+{
+    dyn_array_t *queue = load_process_control_blocks("../pcb.bin");
+    ScheduleResult_t result;
+
+    ASSERT_TRUE(shortest_job_first(queue, &result));
+
+    dyn_array_destroy(queue);
 }
 
 TEST(PriorityScheduling, NullReadyQueue)
@@ -531,6 +551,16 @@ TEST(PriorityScheduling, ProcessesOutOfOrderPriority)
     dyn_array_destroy(ready_queue);
 }
 
+TEST(PriorityScheduling, WithGivenPCBFile)
+{
+    dyn_array_t *queue = load_process_control_blocks("../pcb.bin");
+    ScheduleResult_t result;
+
+    ASSERT_TRUE(priority(queue, &result));
+
+    dyn_array_destroy(queue);
+}
+
 // test cases for round robin
 TEST(RoundRobinTest, MultipleProcessesLargeQuant)
 {
@@ -574,6 +604,37 @@ TEST(RoundRobinTest, MultipleProcessesSmallQuant)
     dyn_array_destroy(queue);
 }
 
+TEST(RoundRobinTest, MultipleProcessesDiffArrivalTimes)
+{
+    dyn_array_t *queue = dyn_array_create(3, sizeof(ProcessControlBlock_t), NULL);
+
+    ProcessControlBlock_t p1 = {3, 0, 2, false}; // Process 1: Burst 3
+    ProcessControlBlock_t p2 = {3, 0, 0, false}; // Process 2: Burst 3
+    ProcessControlBlock_t p3 = {3, 0, 0, false}; // Process 3: Burst 3
+
+    dyn_array_push_back(queue, &p1);
+    dyn_array_push_back(queue, &p2);
+    dyn_array_push_back(queue, &p3);
+
+    ScheduleResult_t result;
+    ASSERT_TRUE(round_robin(queue, &result, 2)); // Quantum = 2
+    EXPECT_NEAR(result.average_waiting_time, 4.33333, 1e-5);
+    EXPECT_NEAR(result.average_turnaround_time, 7.33333, 1e-5);
+    ASSERT_EQ(result.total_run_time, 22);
+
+    dyn_array_destroy(queue);
+}
+
+TEST(RoundRobinTest, WithGivenPCBFile)
+{
+    dyn_array_t *queue = load_process_control_blocks("../pcb.bin");
+    ScheduleResult_t result;
+
+    ASSERT_TRUE(round_robin(queue, &result, 2)); // Quantum = 2
+
+    dyn_array_destroy(queue);
+}
+
 TEST(RoundRobinTest, QuantIsZero)
 {
     dyn_array_t *queue = dyn_array_create(3, sizeof(ProcessControlBlock_t), NULL);
@@ -604,6 +665,19 @@ TEST(RoundRobinTest, NullReadyQueue)
     // Award 5 points
     score += 5;
 }
+
+// TEST(RoundRobinTest, WithPCBFILE)
+// {
+//     dyn_array_t *queue = load_process_control_blocks("../pcb.bin");
+
+//     ScheduleResult_t result;
+//     ASSERT_TRUE(round_robin(queue, &result, 2)); // Quantum = 2
+//     ASSERT_EQ(result.average_waiting_time, 5);
+//     ASSERT_EQ(result.average_turnaround_time, 8);
+//     ASSERT_EQ(result.total_run_time, 24);
+
+//     dyn_array_destroy(queue);
+// }
 
 TEST(RoundRobinTest, NullResult)
 {
