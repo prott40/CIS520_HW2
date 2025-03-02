@@ -38,11 +38,6 @@ int main(int argc, char **argv)
         alg = 3;
     }
     int quanta;
-    if (sscanf(argv[3], "%d", &quanta) != 1)
-    {
-        fprintf(stderr, "Invalid quanta: %s\n", argv[3]);
-        return EXIT_FAILURE;
-    }
     // get time for read me
     time_t rawtime;
     struct tm *timeinfo;
@@ -115,6 +110,11 @@ int main(int argc, char **argv)
     }
     else if (alg == 2)
     {
+        if (argc < 4 || sscanf(argv[3], "%d", &quanta) != 1)
+        {
+            fprintf(stderr, "Invalid or missing quanta for RR: %s\n", argv[3]);
+            return EXIT_FAILURE;
+        }
         if (round_robin(binArray, Result, quanta))
         {
             fprintf(stderr, "%s:%d passed round robin \n", __FILE__, __LINE__);
