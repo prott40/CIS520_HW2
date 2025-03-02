@@ -525,8 +525,13 @@ bool shortest_remaining_time_first(dyn_array_t *ready_queue, ScheduleResult_t *r
 
     while(dyn_array_size(ready_queue)>0){
 
+        //create temporary pcb thats the first one
+        ProcessControlBlock_t *current_process = dyn_array_at(ready_queue, 0);
+
         //remove one from first PCB's burst time (using void function)
-        
+        virtual_cpu(current_process);
+
+        //replace the fir
 
         //resort array
         if (!dyn_array_sort(ready_queue, sjf_compare))
