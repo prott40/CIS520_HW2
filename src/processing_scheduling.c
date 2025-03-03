@@ -151,16 +151,17 @@ bool first_come_first_serve(dyn_array_t *ready_queue, ScheduleResult_t *result)
 // \return true if function ran successful else false for an error
 bool shortest_job_first(dyn_array_t *ready_queue, ScheduleResult_t *result)
 {
-
     // Validate inputs
     if (!ready_queue || !result)
     {
         fprintf(stderr, "%s:%d invalid parameters\n", __FILE__, __LINE__);
         return false;
     }
-    // get the size of the
+
+    // Get the size of the ready queue
     size_t n = dyn_array_size(ready_queue);
-    // check for empty array
+    
+    // Check for empty queue
     if (n == 0)
     {
         // If the queue is empty, zero out the results
@@ -176,16 +177,7 @@ bool shortest_job_first(dyn_array_t *ready_queue, ScheduleResult_t *result)
         fprintf(stderr, "Failed to sort ready queue\n");
         return false;
     }
-    /*
-    // print sorted process
-    printf("Sorted Processes (Burst Time, Arrival Time):\n");
-    for (size_t i = 0; i < n; ++i) {
-        ProcessControlBlock_t *pcb = (ProcessControlBlock_t *)dyn_array_at(ready_queue, i);
-        if (pcb) {
-            printf("Process %zu: Burst = %u, Arrival = %u\n", i, pcb->remaining_burst_time, pcb->arrival);
-        }
-    }
-    //*/
+
     // Initialize statistics
     unsigned long total_wait_time = 0;
     unsigned long total_turnaround_time = 0;
@@ -195,7 +187,7 @@ bool shortest_job_first(dyn_array_t *ready_queue, ScheduleResult_t *result)
     // Iterate over the sorted processes
     for (size_t i = 0; i < n; ++i)
     {
-        // convert and check for failed conversion
+        // Convert and check for failed conversion
         ProcessControlBlock_t *pcb = (ProcessControlBlock_t *)dyn_array_at(ready_queue, i);
         if (!pcb)
         {
@@ -203,7 +195,7 @@ bool shortest_job_first(dyn_array_t *ready_queue, ScheduleResult_t *result)
             return false;
         }
 
-        // If the current time is less than the arrival time, CPU is idle until process arrives
+        // If the current time is less than the arrival time, CPU is idle until the process arrives
         if (current_time < pcb->arrival)
         {
             current_time = pcb->arrival;
@@ -216,10 +208,7 @@ bool shortest_job_first(dyn_array_t *ready_queue, ScheduleResult_t *result)
         // Update statistics
         total_wait_time += wait_time;
         total_turnaround_time += turnaround_time;
-        total_run_time = current_time + pcb->remaining_burst_time;
-
-        // Print wait time and turnaround time for each process
-        // printf("Process %zu: Wait Time = %u, Turnaround Time = %u\n", i, wait_time, turnaround_time);
+        total_run_time += pcb->remaining_burst_time;  // Fix: Increment total_run_time by burst time
 
         // Move current time forward
         current_time += pcb->remaining_burst_time;
@@ -230,13 +219,6 @@ bool shortest_job_first(dyn_array_t *ready_queue, ScheduleResult_t *result)
     result->average_turnaround_time = (float)total_turnaround_time / n;
     result->total_run_time = total_run_time;
 
-    // Print final results
-    /*
-printf("Total Waiting Time = %lu, Total Turnaround Time = %lu, Total Run Time = %lu\n",
-    total_wait_time, total_turnaround_time, total_run_time);
-printf("Average Waiting Time = %.2f, Average Turnaround Time = %.2f\n",
-    result->average_waiting_time, result->average_turnaround_time);
-//*/
     return true;
 }
 //*/
