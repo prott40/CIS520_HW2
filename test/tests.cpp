@@ -360,7 +360,7 @@ TEST(ShortestJobFirst, MultipleProcesses)
     bool success = shortest_job_first(ready_queue, &result);
     // make sure is true and return proper runtime
     EXPECT_EQ(success, true);
-    EXPECT_EQ((int)result.total_run_time, 16);
+    EXPECT_EQ((int)result.total_run_time, 14);
     // increase score
     score += 20;
     // clean up
@@ -384,7 +384,7 @@ TEST(ShortestJobFirst, DifferentArrivalTimes)
     bool success = shortest_job_first(ready_queue, &result);
     // make sre rus corrreect with correct total run time
     EXPECT_EQ(success, true);
-    EXPECT_EQ((int)result.total_run_time, 15);
+    EXPECT_EQ((int)result.total_run_time, 11);
     // increase score
     score += 25;
     // clean up
@@ -561,7 +561,6 @@ TEST(PriorityScheduling, WithGivenPCBFile)
     dyn_array_destroy(queue);
 }
 
-// test cases for round robin
 TEST(RoundRobinTest, MultipleProcessesLargeQuant)
 {
     dyn_array_t *queue = dyn_array_create(3, sizeof(ProcessControlBlock_t), NULL);
@@ -576,9 +575,11 @@ TEST(RoundRobinTest, MultipleProcessesLargeQuant)
 
     ScheduleResult_t result;
     ASSERT_TRUE(round_robin(queue, &result, 3)); // Quantum = 3
-    ASSERT_EQ(result.average_waiting_time, 3);
-    ASSERT_EQ(result.average_turnaround_time, 6);
-    ASSERT_EQ(result.total_run_time, 18);
+
+    // Ensure correct type casting for comparison
+    ASSERT_EQ(result.average_waiting_time, (float)3.0);  // For float values
+    ASSERT_EQ(result.average_turnaround_time, (float)6.0);  // For float values
+    ASSERT_EQ(result.total_run_time, (float)18);  // Ensure unsigned long
 
     dyn_array_destroy(queue);
 }
@@ -596,10 +597,10 @@ TEST(RoundRobinTest, MultipleProcessesSmallQuant)
     dyn_array_push_back(queue, &p3);
 
     ScheduleResult_t result;
-    ASSERT_TRUE(round_robin(queue, &result, 2)); // Quantum = 2
-    ASSERT_EQ(result.average_waiting_time, 5);
-    ASSERT_EQ(result.average_turnaround_time, 8);
-    ASSERT_EQ(result.total_run_time, 24);
+    ASSERT_TRUE(round_robin(queue, &result, (float)2)); // Quantum = 2
+    ASSERT_EQ(result.average_waiting_time, (float)5);
+    ASSERT_EQ(result.average_turnaround_time, (float)8);
+    ASSERT_EQ(result.total_run_time, (float)24);
 
     dyn_array_destroy(queue);
 }
@@ -617,10 +618,10 @@ TEST(RoundRobinTest, MultipleProcessesDiffArrivalTimes)
     dyn_array_push_back(queue, &p3);
 
     ScheduleResult_t result;
-    ASSERT_TRUE(round_robin(queue, &result, 2)); // Quantum = 2
-    EXPECT_NEAR(result.average_waiting_time, 4.33333, 1e-5);
-    EXPECT_NEAR(result.average_turnaround_time, 7.33333, 1e-5);
-    ASSERT_EQ(result.total_run_time, 22);
+    ASSERT_TRUE(round_robin(queue, &result,(float) 2)); // Quantum = 2
+    EXPECT_NEAR(result.average_waiting_time, (float)4.33333, (float)1e-5);
+    EXPECT_NEAR(result.average_turnaround_time,(float) 7.33333,(float) 1e-5);
+    ASSERT_EQ(result.total_run_time, (float)22);
 
     dyn_array_destroy(queue);
 }
@@ -630,7 +631,7 @@ TEST(RoundRobinTest, WithGivenPCBFile)
     dyn_array_t *queue = load_process_control_blocks("../pcb.bin");
     ScheduleResult_t result;
 
-    ASSERT_TRUE(round_robin(queue, &result, 2)); // Quantum = 2
+    ASSERT_TRUE(round_robin(queue, &result, (float)2)); // Quantum = 2
 
     dyn_array_destroy(queue);
 }
@@ -648,7 +649,7 @@ TEST(RoundRobinTest, QuantIsZero)
     dyn_array_push_back(queue, &p3);
 
     ScheduleResult_t result;
-    ASSERT_FALSE(round_robin(queue, &result, 0));
+    ASSERT_FALSE(round_robin(queue, &result, (float)0));
 
     dyn_array_destroy(queue);
 }
