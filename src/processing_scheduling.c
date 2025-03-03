@@ -497,6 +497,13 @@ bool shortest_remaining_time_first(dyn_array_t *ready_queue, ScheduleResult_t *r
     }
 
     while (n > 0) {
+
+        // Re-sort the ready queue based on remaining burst time
+        if (!dyn_array_sort(ready_queue, sjf_compare)) {
+            fprintf(stderr, "Failed to sort ready queue\n");
+            return false;
+        }
+        
         // Get the process with the shortest remaining burst time
         ProcessControlBlock_t *current_process = dyn_array_at(ready_queue, 0);
         if (!current_process) {
@@ -528,11 +535,6 @@ bool shortest_remaining_time_first(dyn_array_t *ready_queue, ScheduleResult_t *r
         // Update the current time
         current_time += current_process->remaining_burst_time;
 
-        // Re-sort the ready queue based on remaining burst time
-        if (!dyn_array_sort(ready_queue, sjf_compare)) {
-            fprintf(stderr, "Failed to sort ready queue\n");
-            return false;
-        }
 
         // Update the size of the ready queue
         n = dyn_array_size(ready_queue);
