@@ -708,6 +708,78 @@ TEST(RoundRobinTest, EmptyReadyQueue)
     dyn_array_destroy(ready_queue);
 }
 
+
+//Start of SRTF Tests
+
+TEST(ShortestRemainingTimeFirst, NullReadyQueue)
+{
+    // create array and result empty
+    dyn_array_t *ready_queue = nullptr;
+    ScheduleResult_t result = {0.0f, 0.0f, 0UL};
+    // run to see if catch faiure
+    bool success = shortest_remaining_time_first(ready_queue, &result);
+    EXPECT_EQ(success, false);
+    // increase score
+    score += 5;
+}
+
+TEST(ShortestRemainingTimeFirst, NullResult)
+{
+    // creates array and make sure it empty
+    dyn_array_t *ready_queue = dyn_array_create(0, sizeof(ProcessControlBlock_t), nullptr);
+    ASSERT_NE(ready_queue, nullptr);
+    // gice result param a null value to check if it fails
+    bool success = shortest_remaining_time_first(ready_queue, nullptr);
+    EXPECT_EQ(success, false);
+    // increase score
+    score += 5;
+    // clean up
+    dyn_array_destroy(ready_queue);
+}
+
+TEST(ShortestRemainingTimeFirst, EmptyReadyQueue)
+{
+    // create empty queue
+    dyn_array_t *ready_queue = dyn_array_create(0, sizeof(ProcessControlBlock_t), nullptr);
+    ASSERT_NE(ready_queue, nullptr);
+    // set reslt
+    ScheduleResult_t result = {0.0f, 0.0f, 0UL};
+    // run shortest on empty
+    bool success = shortest_remaining_time_first(ready_queue, &result);
+    // check expected values
+    EXPECT_EQ(success, true);
+    EXPECT_EQ((int)result.average_turnaround_time, 0);
+    EXPECT_EQ((int)result.average_waiting_time, 0);
+    EXPECT_EQ((int)result.total_run_time, 0);
+    // increase score
+    score += 10;
+    // clean up
+    dyn_array_destroy(ready_queue);
+}
+
+TEST(ShortestRemainingTimeFirst, SingleProcess)
+{
+    // give a single process
+    ProcessControlBlock_t pcb = {5, 1, 0, false};
+    dyn_array_t *ready_queue = dyn_array_create(1, sizeof(ProcessControlBlock_t), nullptr);
+    ASSERT_NE(ready_queue, nullptr);
+    // add to back of array
+    dyn_array_push_back(ready_queue, &pcb);
+    // create result
+    ScheduleResult_t result = {0.0f, 0.0f, 0UL};
+    // run single process
+    bool success = shortest_remaining_time_first(ready_queue, &result);
+    // check results
+    EXPECT_EQ(success, true);
+    EXPECT_EQ((int)result.average_turnaround_time, 5);
+    EXPECT_EQ((int)result.average_waiting_time, 0);
+    EXPECT_EQ((int)result.total_run_time, 5);
+    // increase score
+    score += 15;
+    // clean up
+    dyn_array_destroy(ready_queue);
+}
+
 class GradeEnvironment : public testing::Environment
 {
 public:
