@@ -489,6 +489,12 @@ bool shortest_remaining_time_first(dyn_array_t *ready_queue, ScheduleResult_t *r
 	return false;
     */
 
+    // Initialize statistics
+    unsigned long total_wait_time = 0;
+    unsigned long total_turnaround_time = 0;
+    unsigned long total_run_time = 0;
+    uint32_t current_time = 0;
+
     // Validate input parameters
     if (!ready_queue || !result) {
         fprintf(stderr, "Error: NULL ready_queue or result\n");
@@ -532,12 +538,18 @@ bool shortest_remaining_time_first(dyn_array_t *ready_queue, ScheduleResult_t *r
         {
             return false; // Error: process is NULL
         }
-        
+
 
         //remove one from first PCB's burst time (using void function)
+        //  and add one to the total time thats happened
         virtual_cpu(current_process);
+        total_run_time++;
 
-        //replace the fir
+        if(current_process->remaining_burst_time==0){
+            dyn_array_pop_front(ready_queue);  // Remove process from ready queue
+        }
+        
+
 
         //resort array
         if (!dyn_array_sort(ready_queue, sjf_compare))
@@ -546,6 +558,10 @@ bool shortest_remaining_time_first(dyn_array_t *ready_queue, ScheduleResult_t *r
             return false;
         }
         
+
+        result->average_waiting_time= total_wait_time/n;
+        result->average_turnaround_time=
+        result-> total_run_time=total_run_time;
 
     }
 }
