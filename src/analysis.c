@@ -28,20 +28,22 @@ int main(int argc, char **argv)
     else if(strncmp(argv[2],P,1)==0){
         alg = 1;
     }
-    else if(strncmp(argv[2],RR,1)==0){
+    else if(strncmp(argv[2],RR,2)==0){
         alg = 2;
     }
-    else if(strncmp(argv[2],SJF,1)==0){
+    else if(strncmp(argv[2],SJF,3)==0){
         alg = 3;
     }
 	else{
 		alg = 4;
 	}
     size_t quanta;
-    if (sscanf(argv[3], "%zuS", &quanta) != 1) {
-        fprintf(stderr, "Invalid quanta: %s\n", argv[3]);
-        return EXIT_FAILURE;
-    }
+	if(argv[3] != NULL){
+		if (sscanf(argv[3], "%zu", &quanta) != 1) {
+			fprintf(stderr, "Invalid quanta: %s\n", argv[3]);
+			return EXIT_FAILURE;
+		}
+	}
     // get time for read me
     time_t rawtime;
     struct tm *timeinfo;
