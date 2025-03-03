@@ -58,3 +58,12 @@ user 0m0.000s
 sys 0m0.002s
 
 ---
+---------2025-03-02 23:09:43 SRTF-----------
+Average wait time: 311.25
+Average turnaround time: 411.25
+Total run time: 400
+
+real    0m0.458s
+user    0m0.002s
+sys     0m0.012s
+---------------------------------------
