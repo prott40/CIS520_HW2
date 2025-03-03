@@ -9,6 +9,8 @@ Milestone 2: Shortest Job First, Shortest Remaining Time First, Round Robin, and
 Note:
 You can manually copy the time analysis from console and paste it to this file, but directly output from your program is strongly recommended.
 
+to run the analysis  it mus tbe in the format analysis <PCBs_bin_file> <schedule algorithm> [Optional_Time_Quantum]
+to get the time to termial you must put time before the analysis
 ---
 
 ## Add your scheduling algorithm analysis below this line in a readable format.
