@@ -780,6 +780,32 @@ TEST(ShortestRemainingTimeFirst, SingleProcess)
     dyn_array_destroy(ready_queue);
 }
 
+TEST(ShortestRemainingTimeFirst, MultipleProcesses)
+{
+    // create muliple processs
+    ProcessControlBlock_t pcb1 = {8, 0, 0, false};
+    ProcessControlBlock_t pcb2 = {4, 0, 1, false};
+    ProcessControlBlock_t pcb3 = {2, 0, 2, false};
+    // allocate array
+    dyn_array_t *ready_queue = dyn_array_create(3, sizeof(ProcessControlBlock_t), nullptr);
+    ASSERT_NE(ready_queue, nullptr);
+    // add proccesses to array
+    dyn_array_push_back(ready_queue, &pcb1);
+    dyn_array_push_back(ready_queue, &pcb2);
+    dyn_array_push_back(ready_queue, &pcb3);
+    // create result
+    ScheduleResult_t result = {0.0f, 0.0f, 0UL};
+    // run alogorith
+    bool success = shortest_remaining_time_first(ready_queue, &result);
+    // make sure is true and return proper runtime
+    EXPECT_EQ(success, true);
+    EXPECT_EQ((int)result.total_run_time, 14);
+    // increase score
+    score += 20;
+    // clean up
+    dyn_array_destroy(ready_queue);
+}
+
 class GradeEnvironment : public testing::Environment
 {
 public:

@@ -518,7 +518,7 @@ bool shortest_remaining_time_first(dyn_array_t *ready_queue, ScheduleResult_t *r
         total_turnaround_time += turnaround_time;
         total_run_time += current_process->remaining_burst_time;
 
-        // Run the process (decrease its remaining burst time)
+        // Run the process (decrease its remaining burst time by 1)
         virtual_cpu(current_process);
 
         // If the process has finished, remove it from the ready queue
@@ -527,7 +527,7 @@ bool shortest_remaining_time_first(dyn_array_t *ready_queue, ScheduleResult_t *r
         }
 
         // Update the current time
-        current_time += current_process->remaining_burst_time;
+        //current_time += current_process->remaining_burst_time;
 
 
         // Update the size of the ready queue
