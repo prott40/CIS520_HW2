@@ -520,6 +520,7 @@ bool shortest_remaining_time_first(dyn_array_t *ready_queue, ScheduleResult_t *r
 
         // Run the process (decrease its remaining burst time by 1)
         virtual_cpu(current_process);
+        current_time++;
 
         // If the process has finished, remove it from the ready queue
         if (current_process->remaining_burst_time == 0) {
