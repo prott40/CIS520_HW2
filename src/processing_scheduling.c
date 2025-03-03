@@ -502,7 +502,8 @@ bool shortest_remaining_time_first(dyn_array_t *ready_queue, ScheduleResult_t *r
     }
 
     // get the size of the queue
-    size_t n = dyn_array_size(ready_queue);
+    size_t originalArraySize = dyn_array_size(ready_queue);
+    size_t n=originalArraySize;
     // check for empty array
     if (n == 0) {
         // If the queue is empty, zero out the results
@@ -529,7 +530,9 @@ bool shortest_remaining_time_first(dyn_array_t *ready_queue, ScheduleResult_t *r
         return false;
     }
 
-    while(dyn_array_size(ready_queue)>0){
+    while(n>0){
+
+        
 
         //create temporary pcb thats the first one
         ProcessControlBlock_t *current_process = dyn_array_at(ready_queue, 0);
@@ -544,6 +547,10 @@ bool shortest_remaining_time_first(dyn_array_t *ready_queue, ScheduleResult_t *r
         //  and add one to the total time thats happened
         virtual_cpu(current_process);
         total_run_time++;
+        total_turnaround_time++;
+
+        //add wait time (number of items not running * time current process is going)
+        total_wait_time+=(n-1);
 
         if(current_process->remaining_burst_time==0){
             dyn_array_pop_front(ready_queue);  // Remove process from ready queue
@@ -559,9 +566,12 @@ bool shortest_remaining_time_first(dyn_array_t *ready_queue, ScheduleResult_t *r
         }
         
 
-        result->average_waiting_time= total_wait_time/n;
-        result->average_turnaround_time=
-        result-> total_run_time=total_run_time;
+        n = dyn_array_size(ready_queue);
 
     }
+
+    //update result times
+    result->average_waiting_time= total_wait_time/originalArraySize;
+    result->average_turnaround_time=total_turnaround_time/originalArraySize;
+    result-> total_run_time=total_run_time;
 }
