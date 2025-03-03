@@ -490,15 +490,9 @@ bool shortest_remaining_time_first(dyn_array_t *ready_queue, ScheduleResult_t *r
         return true;
     }
 
-    // Sort the ready queue by burst time
-    if (!dyn_array_sort(ready_queue, sjf_compare)) {
-        fprintf(stderr, "Failed to sort ready queue\n");
-        return false;
-    }
-
     while (n > 0) {
 
-        // Re-sort the ready queue based on remaining burst time
+        // Sort the ready queue based on remaining burst time
         if (!dyn_array_sort(ready_queue, sjf_compare)) {
             fprintf(stderr, "Failed to sort ready queue\n");
             return false;
