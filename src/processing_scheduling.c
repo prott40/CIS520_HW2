@@ -465,12 +465,6 @@ dyn_array_t *load_process_control_blocks(const char *input_file)
 
 bool shortest_remaining_time_first(dyn_array_t *ready_queue, ScheduleResult_t *result)
 {
-    /*
-	UNUSED(ready_queue);
-	UNUSED(result);
-	return false;
-    */
-
     // Initialize statistics
     unsigned long total_wait_time = 0;
     unsigned long total_turnaround_time = 0;
@@ -483,10 +477,11 @@ bool shortest_remaining_time_first(dyn_array_t *ready_queue, ScheduleResult_t *r
         return false;
     }
 
-    // get the size of the queue
+    // Get the size of the queue
     size_t originalArraySize = dyn_array_size(ready_queue);
-    size_t n=originalArraySize;
-    // check for empty array
+    size_t n = originalArraySize;
+
+    // Check for empty array
     if (n == 0) {
         // If the queue is empty, zero out the results
         result->average_waiting_time = 0.0f;
@@ -495,65 +490,58 @@ bool shortest_remaining_time_first(dyn_array_t *ready_queue, ScheduleResult_t *r
         return true;
     }
 
-    //always run shortest remaining burst time
-    //use the void function to reduce void time
-
-    //1. sort the array
-    //2. while the array isn't empty:
-    //  a. remove a single number from the current burst time of the shortest pcb
-    //  b. re-sort the array
-    //clear memory
-
-    //1.
     // Sort the ready queue by burst time
-    if (!dyn_array_sort(ready_queue, sjf_compare))
-    {
+    if (!dyn_array_sort(ready_queue, sjf_compare)) {
         fprintf(stderr, "Failed to sort ready queue\n");
         return false;
     }
 
-    while(n>0){
-
-        
-
-        //create temporary pcb thats the first one
+    while (n > 0) {
+        // Get the process with the shortest remaining burst time
         ProcessControlBlock_t *current_process = dyn_array_at(ready_queue, 0);
-        //error check
-        if (!current_process)
-        {
+        if (!current_process) {
             return false; // Error: process is NULL
         }
 
-
-        //remove one from first PCB's burst time (using void function)
-        //  and add one to the total time thats happened
-        virtual_cpu(current_process);
-        total_run_time++;
-        total_turnaround_time++;
-
-        //add wait time (number of items not running * time current process is going)
-        total_wait_time+=(n-1);
-
-        if(current_process->remaining_burst_time==0){
-            dyn_array_pop_front(ready_queue);  // Remove process from ready queue
+        // If the current time is less than the process's arrival time, wait for it to arrive
+        if (current_time < current_process->arrival) {
+            current_time = current_process->arrival;
         }
-        
 
+        // Calculate wait time and turnaround time
+        uint32_t wait_time = current_time - current_process->arrival;
+        uint32_t turnaround_time = wait_time + current_process->remaining_burst_time;
 
-        //resort array
-        if (!dyn_array_sort(ready_queue, sjf_compare))
-        {
+        // Update statistics
+        total_wait_time += wait_time;
+        total_turnaround_time += turnaround_time;
+        total_run_time += current_process->remaining_burst_time;
+
+        // Run the process (decrease its remaining burst time)
+        virtual_cpu(current_process);
+
+        // If the process has finished, remove it from the ready queue
+        if (current_process->remaining_burst_time == 0) {
+            dyn_array_pop_front(ready_queue);
+        }
+
+        // Update the current time
+        current_time += current_process->remaining_burst_time;
+
+        // Re-sort the ready queue based on remaining burst time
+        if (!dyn_array_sort(ready_queue, sjf_compare)) {
             fprintf(stderr, "Failed to sort ready queue\n");
             return false;
         }
-        
 
+        // Update the size of the ready queue
         n = dyn_array_size(ready_queue);
-
     }
 
-    //update result times
-    result->average_waiting_time= total_wait_time/originalArraySize;
-    result->average_turnaround_time=total_turnaround_time/originalArraySize;
-    result-> total_run_time=total_run_time;
+    // Calculate averages
+    result->average_waiting_time = (float)total_wait_time / originalArraySize;
+    result->average_turnaround_time = (float)total_turnaround_time / originalArraySize;
+    result->total_run_time = total_run_time;
+
+    return true;
 }
