@@ -37,8 +37,8 @@ int main(int argc, char **argv)
 	else{
 		alg = 4;
 	}
-    int quanta;
-    if (sscanf(argv[3], "%d", &quanta) != 1) {
+    size_t quanta;
+    if (sscanf(argv[3], "%zuS", &quanta) != 1) {
         fprintf(stderr, "Invalid quanta: %s\n", argv[3]);
         return EXIT_FAILURE;
     }
@@ -109,7 +109,7 @@ int main(int argc, char **argv)
         }
     }
     else if(alg == 2){
-		if (round_robin(binArray, Result)) 
+		if (round_robin(binArray, Result,quanta)) 
         {
             fprintf(stderr, "%s:%d passed rr \n", __FILE__, __LINE__);
         } 
